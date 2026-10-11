@@ -4,6 +4,8 @@ namespace IdleGuard.Native;
 
 internal static class NativeMethods
 {
+    [DllImport("user32.dll")]
+    internal static extern uint GetDpiForWindow(nint window);
     internal const uint GetScreenSaverActive = 0x0010;
     internal const uint GetScreenSaverTimeout = 0x000E;
     internal const uint GetScreenSaverRunning = 0x0072;

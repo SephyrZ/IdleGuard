@@ -23,15 +23,15 @@ public sealed class ScreenSaverService
     public void RequestStart(nint window)
     {
         if (ReadConfiguration().Path is null)
-            throw new InvalidOperationException("尚未配置屏保，请先在 Windows 屏幕保护程序设置中选择屏保。");
+            throw new InvalidOperationException("NoSaverError");
         if (!NativeMethods.PostMessage(window, NativeMethods.WmSysCommand, NativeMethods.ScScreenSave, 0))
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "发送屏保启动请求失败。");
+            throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
     private static int ReadParameter(uint action)
     {
         if (!NativeMethods.SystemParametersInfo(action, 0, out var value, 0))
-            throw new Win32Exception(Marshal.GetLastWin32Error(), $"读取屏保信息失败（0x{action:X4}）。");
+            throw new Win32Exception(Marshal.GetLastWin32Error());
         return value;
     }
 }

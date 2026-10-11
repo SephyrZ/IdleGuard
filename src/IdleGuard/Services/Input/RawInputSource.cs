@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using IdleGuard.Native;
+using IdleGuard.Models;
 
 namespace IdleGuard.Services.Input;
 
@@ -8,7 +9,7 @@ internal sealed class RawInputSource : IDisposable
 {
     private readonly InputMessageWindow _window;
     private readonly MouseActivityFilter _mouse = new();
-    internal event Action<nint, string>? Activity;
+    internal event Action<nint, InputActivityKind>? Activity;
     internal event Action? DevicesChanged;
     internal event Action<bool>? SessionLocked;
     internal event Action<bool>? SystemSuspended;
@@ -61,14 +62,14 @@ internal sealed class RawInputSource : IDisposable
             {
                 var mouse = Marshal.PtrToStructure<InputNativeMethods.RawMouse>(body);
                 if (_mouse.IsActivity(header.Device, mouse.Flags, mouse.ButtonFlags, mouse.ButtonData, mouse.X, mouse.Y))
-                    Activity?.Invoke(header.Device, (mouse.ButtonFlags & 0xC00) != 0 ? "鼠标滚轮" :
-                        (mouse.ButtonFlags & 0x3FF) != 0 ? "鼠标按键" : "鼠标移动");
+                    Activity?.Invoke(header.Device, (mouse.ButtonFlags & 0xC00) != 0 ? InputActivityKind.MouseWheel :
+                        (mouse.ButtonFlags & 0x3FF) != 0 ? InputActivityKind.MouseButton : InputActivityKind.MouseMove);
             }
             else if (header.Type == 1 && copied >= headerSize + Marshal.SizeOf<InputNativeMethods.RawKeyboard>())
             {
                 var keyboard = Marshal.PtrToStructure<InputNativeMethods.RawKeyboard>(body);
                 if (keyboard.VirtualKey != 0xFF && keyboard.MakeCode != 0xFF && keyboard.Message is 0x100 or 0x101 or 0x104 or 0x105)
-                    Activity?.Invoke(header.Device, (keyboard.Flags & 1) == 0 ? "键盘按下 / 重复" : "键盘释放");
+                    Activity?.Invoke(header.Device, (keyboard.Flags & 1) == 0 ? InputActivityKind.KeyDown : InputActivityKind.KeyUp);
             }
         }
         finally { Marshal.FreeHGlobal(data); }

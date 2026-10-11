@@ -1,6 +1,6 @@
 # Screensaver validation
 
-The first implementation added manual screensaver testing. The current window also includes keyboard/mouse selection and independent idle time; see [input validation](input-validation.md). Automatic timeout triggering is not implemented. The manual Start screensaver button remains a permanent user testing feature.
+The first implementation added manual screensaver testing. The current app also includes keyboard/mouse selection, independent idle time, and automatic timeout triggering; see [input validation](input-validation.md). The manual Test screensaver button remains a permanent user testing feature on all pages.
 
 ## Observed on the development machine
 

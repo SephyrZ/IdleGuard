@@ -42,9 +42,8 @@ public sealed class DeviceCatalog
             if (!_byPath.TryGetValue(path, out var device))
             {
                 var kind = entry.Type == 0 ? InputDeviceKind.Mouse : InputDeviceKind.Keyboard;
-                var label = kind == InputDeviceKind.Keyboard ? "键盘" : "鼠标";
                 var number = Devices.Count(d => d.Kind == kind) + 1;
-                device = new InputDevice { Path = path, Kind = kind, Name = $"{label} {number} · {ReadFriendlyName(path) ?? "HID 设备"}" };
+                device = new InputDevice { Path = path, Kind = kind, Number = number, HardwareName = ReadFriendlyName(path) };
                 _byPath.Add(path, device);
                 Devices.Add(device);
             }

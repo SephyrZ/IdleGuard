@@ -43,7 +43,7 @@ internal sealed class InputMessageWindow : IDisposable
          new() { UsagePage = 1, Usage = 6, Flags = flags, Target = target }];
         if (!InputNativeMethods.RegisterRawInputDevices(devices, (uint)devices.Length,
                 (uint)Marshal.SizeOf<InputNativeMethods.DeviceRegistration>()))
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "无法注册键鼠 Raw Input。");
+            throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
     private nint WndProc(nint window, uint message, nuint wParam, nint lParam)

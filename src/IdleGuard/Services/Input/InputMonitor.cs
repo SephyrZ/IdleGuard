@@ -1,3 +1,5 @@
+using IdleGuard.Models;
+
 namespace IdleGuard.Services.Input;
 
 /// <summary>Owned by App; native messages and device rules are handled on the UI thread.</summary>
@@ -10,10 +12,9 @@ public sealed class InputMonitor : IDisposable
     public IdleTracker Tracker { get; } = new();
     public long AcceptedCount { get; private set; }
     public long IgnoredCount { get; private set; }
-    public string LastActivity { get; private set; } = "尚未收到有效键鼠输入。";
-    public string LastAccepted { get; private set; } = "尚无";
-    public string Status => _error is not null ? $"监控已暂停：{_error}" :
-        _locked || _suspended ? "监控已暂停（锁屏或系统挂起）" : "监控中 · 仅键盘和鼠标";
+    public InputActivity? LastActivity { get; private set; }
+    public InputDevice? LastAccepted { get; private set; }
+    public string? Error => _error;
 
     public InputMonitor() => RefreshDevices();
 
@@ -37,17 +38,16 @@ public sealed class InputMonitor : IDisposable
         catch (Exception ex) { OnError(ex); }
     }
 
-    private void OnActivity(nint handle, string kind)
+    private void OnActivity(nint handle, InputActivityKind kind)
     {
         var device = Catalog.Find(handle);
         // Arrival can race enumeration; unknown sources remain rejected until refresh.
         var accepted = Tracker.RecordActivity(DevicePolicy.Accepts(device));
-        var source = device?.Name ?? "无法识别的设备";
-        LastActivity = $"{source} · {kind} · {(accepted ? "已接受" : "已忽略")}";
+        LastActivity = new(device, kind, accepted);
         if (accepted)
         {
             AcceptedCount++;
-            LastAccepted = source;
+            LastAccepted = device;
         }
         else IgnoredCount++;
     }

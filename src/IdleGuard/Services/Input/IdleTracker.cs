@@ -16,12 +16,14 @@ public sealed class IdleTracker
     }
 
     public bool IsPaused { get; private set; }
+    public long Cycle { get; private set; }
     public TimeSpan Idle => IsPaused ? _pausedIdle : _now() - _baseline;
 
     public bool RecordActivity(bool accepted)
     {
         if (!accepted || IsPaused) return false;
         _baseline = _now();
+        Cycle++;
         return true;
     }
 
@@ -36,6 +38,14 @@ public sealed class IdleTracker
     {
         if (!IsPaused) return;
         _baseline = _now();
+        Cycle++;
         IsPaused = false;
+    }
+
+    public void Restart()
+    {
+        _baseline = _now();
+        _pausedIdle = TimeSpan.Zero;
+        Cycle++;
     }
 }
