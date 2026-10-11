@@ -1,0 +1,15 @@
+# .NET build output
+**/bin/
+**/obj/
+artifacts/
+
+# Local IDE state
+.vs/
+*.user
+*.suo
+
+# Local secrets and diagnostics
+.env
+.env.*
+!.env.example
+*.log

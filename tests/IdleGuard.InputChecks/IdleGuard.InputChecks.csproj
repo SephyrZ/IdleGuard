@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/IdleGuard/Models/InputDevice.cs" Link="InputDevice.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/DevicePolicy.cs" Link="DevicePolicy.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/IdleTracker.cs" Link="IdleTracker.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/MouseActivityFilter.cs" Link="MouseActivityFilter.cs" />
+    <Compile Include="../../src/IdleGuard/Native/InputNativeMethods.cs" Link="InputNativeMethods.cs" />
+  </ItemGroup>
+</Project>
