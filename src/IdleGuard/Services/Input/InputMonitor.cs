@@ -6,6 +6,7 @@ namespace IdleGuard.Services.Input;
 public sealed class InputMonitor : IDisposable
 {
     private RawInputSource? _source;
+    private readonly XInputSource _controllers = new();
     private bool _locked, _suspended;
     private string? _error;
     public DeviceCatalog Catalog { get; } = new();
@@ -16,7 +17,20 @@ public sealed class InputMonitor : IDisposable
     public InputDevice? LastAccepted { get; private set; }
     public string? Error => _error;
 
-    public InputMonitor() => RefreshDevices();
+    public InputMonitor()
+    {
+        _controllers.ConnectionChanged += Catalog.SetXInputConnected;
+        _controllers.Activity += slot => RecordActivity(Catalog.Find($"xinput:{slot}"), InputActivityKind.ControllerInput);
+        RefreshDevices();
+        PollControllers();
+    }
+
+    public void PollControllers()
+    {
+        if (_locked || _suspended) return;
+        try { _controllers.Poll(); }
+        catch (Exception ex) { OnError(ex); }
+    }
 
     public void RefreshDevices()
     {
@@ -24,14 +38,15 @@ public sealed class InputMonitor : IDisposable
         {
             if (_source is null)
             {
-                _source = new RawInputSource();
+                _source = new RawInputSource(handle => Catalog.Find(handle) is { CanMonitor: true } device && Catalog.Devices.Contains(device));
                 _source.Activity += OnActivity;
                 _source.DevicesChanged += RefreshDevices;
                 _source.Error += OnError;
-                _source.SessionLocked += locked => { _locked = locked; UpdatePause(); };
-                _source.SystemSuspended += suspended => { _suspended = suspended; UpdatePause(); };
+                _source.SessionLocked += locked => { _locked = locked; _controllers.Clear(); UpdatePause(); };
+                _source.SystemSuspended += suspended => { _suspended = suspended; _controllers.Clear(); UpdatePause(); };
             }
             Catalog.Refresh();
+            _source.SetHidDevices(Catalog.Devices.Where(d => d.IsConnected && d.Usage != 0 && d.CanMonitor));
             _error = null;
             UpdatePause();
         }
@@ -41,8 +56,13 @@ public sealed class InputMonitor : IDisposable
     private void OnActivity(nint handle, InputActivityKind kind)
     {
         var device = Catalog.Find(handle);
+        RecordActivity(device, kind);
+    }
+
+    private void RecordActivity(InputDevice? device, InputActivityKind kind)
+    {
         // Arrival can race enumeration; unknown sources remain rejected until refresh.
-        var accepted = Tracker.RecordActivity(DevicePolicy.Accepts(device));
+        var accepted = Tracker.RecordActivity(device is not null && Catalog.Devices.Contains(device) && DevicePolicy.Accepts(device));
         LastActivity = new(device, kind, accepted);
         if (accepted)
         {

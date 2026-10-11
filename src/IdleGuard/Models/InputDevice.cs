@@ -4,7 +4,7 @@ using IdleGuard.Services;
 
 namespace IdleGuard.Models;
 
-public enum InputDeviceKind { Mouse, Keyboard }
+public enum InputDeviceKind { Mouse, Keyboard, Controller, Hid }
 
 public sealed class InputDevice : INotifyPropertyChanged
 {
@@ -23,7 +23,18 @@ public sealed class InputDevice : INotifyPropertyChanged
         init => _name = value;
     }
     public required InputDeviceKind Kind { get; init; }
-    public string KindLabel => LocalizationService.Current[Kind == InputDeviceKind.Keyboard ? "Keyboard" : "Mouse"];
+    public string IconGlyph => Kind switch
+    {
+        InputDeviceKind.Keyboard => "\uE92E",
+        InputDeviceKind.Mouse => "\uE962",
+        InputDeviceKind.Controller => "\uE7FC",
+        _ => "\uE772"
+    };
+    public ushort UsagePage { get; init; }
+    public ushort Usage { get; init; }
+    public bool CanMonitor { get; init; } = true;
+    public string KindLabel => LocalizationService.Current[Kind.ToString()];
+    public string PickerLabel => $"{Name} · {LocalizationService.Current[CanMonitor ? "SupportedInput" : "UnsupportedInput"]}";
     public string Description => $"{KindLabel} · {LocalizationService.Current[IsConnected ? "Connected" : "Offline"]}";
     public string DisplayName => $"{Name} · {LocalizationService.Current[IsConnected ? "Connected" : "Offline"]}";
     public bool ShowId

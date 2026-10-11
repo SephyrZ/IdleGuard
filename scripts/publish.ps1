@@ -6,12 +6,18 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $releasePath = Join-Path $repoRoot 'Release'
 $projectPath = Join-Path $repoRoot 'src/IdleGuard/IdleGuard.csproj'
 $executablePath = Join-Path $releasePath 'IdleGuard.exe'
+$buildPath = (Join-Path $repoRoot 'artifacts/compact-build') + [IO.Path]::DirectorySeparatorChar
 
 if (Get-Process -Name IdleGuard -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $executablePath }) {
     throw 'Exit IdleGuard from its tray menu before updating the release.'
 }
 
-& dotnet publish $projectPath -p:PublishProfile=Compact -p:Platform=x64 -c Release -o $releasePath
+# A normal development build and a single-file build have different WinUI
+# initialization/resource requirements. Never reuse incremental development
+# output for publishing; build the release profile fully before bundling it.
+& dotnet build $projectPath -t:Rebuild -p:PublishProfile=Compact -p:Platform=x64 "-p:OutDir=$buildPath" -c Release
+if ($LASTEXITCODE -ne 0) { throw 'Release rebuild failed.' }
+& dotnet publish $projectPath -p:PublishProfile=Compact -p:Platform=x64 "-p:OutDir=$buildPath" -c Release --no-build --no-restore -o $releasePath
 if ($LASTEXITCODE -ne 0) { throw 'Publishing failed.' }
 
 $docsPath = Join-Path $releasePath 'docs'

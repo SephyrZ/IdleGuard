@@ -6,13 +6,17 @@ C# + WinUI 3 单项目、单进程桌面工具。维护 IdleGuard 自己的空�
 
 timeout 可使用用户自定义值，或读取系统屏保 timeout。同步的是超时数值，不是 Windows 的空闲计时。应用不控制水冷软件、不修改 Windows 的输入计时机制，也不单独实现自动锁屏。
 
-当前已创建可编译的 .NET 10 / WinUI 3 x64 无包应用，采用左侧 NavigationView：屏保主页、监测与设备、左下角关于及设置。支持键鼠枚举、每接口开关、实时计时、手动与超时自动启动屏保。InputMonitor 由 App 持有，通过隐藏窗口接收后台输入和设备变化；锁屏、睡眠期间暂停，恢复时重建基线。SettingsStore 保存语言、timeout 来源/自定义值及监控开关，LocalizationService 使用内嵌中英文 JSON 资源即时更新界面。TrayIcon 使用 Shell_NotifyIcon 和窗口子类化管理通知区域图标；关闭窗口取消销毁并隐藏，控制器和计时器保持运行。StartupService 管理当前用户 Run 项，以 --background 登录后隐藏启动；命名互斥量与注册窗口消息实现单实例唤回。手柄和设备选择持久化尚未实现。
+当前已创建可编译的 .NET 10 / WinUI 3 x64 无包应用，采用左侧 NavigationView：屏保主页、监测与设备、左下角关于及设置。支持键鼠枚举、每接口开关、实时计时、手动与超时自动启动屏保。InputMonitor 由 App 持有，通过隐藏窗口接收后台输入和设备变化；锁屏、睡眠期间暂停，恢复时重建基线。SettingsStore 保存语言、timeout 来源/自定义值及监控开关，LocalizationService 使用内嵌中英文 JSON 资源即时更新界面。TrayIcon 使用 Shell_NotifyIcon 和窗口子类化管理通知区域图标；关闭窗口取消销毁并隐藏，控制器和计时器保持运行。StartupService 管理当前用户 Run 项，以 --background 登录后隐藏启动；命名互斥量与注册窗口消息实现单实例唤回。已接入 XInput 与标准 HID 手柄，设备选择和管理员启动偏好可持久化保存；实体手柄和登录提权仍需验证。
 
 主页使用 IdleController 协调 Disabled / Monitoring / Triggering / Triggered / Error 状态。IdleTracker 的 Cycle 在接受输入、恢复或显式重建基线时递增，已触发周期只在新 Cycle 后重新监控。系统屏保正在运行时消费当前周期，避免重复请求。启动请求期间防重入，检测失败进入 Error，用户显式重试后才恢复。切换页面不停止监控，手动测试入口在全部页面底部保留。首次启动默认暂停自动触发，后续恢复保存的监控开关；语言与时间偏好从本地 JSON 读取。托盘和主页共享控制器，设置页与托盘共享当前用户自启项。固定栏显示当前本地时间和首次检测到屏保运行的名称与日期时间，精确到秒。
 
 “启动屏保”按钮长期保留为用户测试入口，后续接入自动触发时也不移除。
 
-当前输入实现包含 Models/InputDevice、Services/Input 下的 InputMonitor、DeviceCatalog、RawInputSource、MouseActivityFilter、DevicePolicy、IdleTracker，以及 Native 下的 InputMessageWindow、InputNativeMethods。设备路径作为本次运行的规则键，当前句柄仅用于输入路由；相同路径重连保留开关，离线设备保留记录。键盘按下、重复、释放均计为活动；鼠标绝对坐标首报建立基线，未变化的坐标不算活动。界面每 250 ms 刷新摘要，不逐条渲染输入报文。
+当前输入实现包含 Models/InputDevice、Services/Input 下的 InputMonitor、DeviceCatalog、RawInputSource、MouseActivityFilter、DevicePolicy、IdleTracker、XInputSource、ControllerActivityFilter、HidDeviceReader、ControlActivityFilter，以及 Native 下的窗口、输入与 HID/XInput 声明。设备路径和 XInput 槽位作为保存的规则键，当前句柄仅用于路由。相同路径重连保留开关，未连接设备的规则也不会丢失。键盘按下、重复、释放均计为活动；鼠标绝对坐标首报建立基线。窗口可见且未最小化时每 250 ms 刷新摘要，不逐条渲染报文。隐藏到托盘或最小化时跳过摘要、时钟与设置状态的定时界面更新；输入监听、手柄轮询、系统配置检查和超时判断继续运行。重新显示时立即刷新最新状态，设备目录仍随连接变化维护。
+
+监测页默认加入键鼠和支持的手柄。添加设备对话框列出 Windows Raw Input 输入接口，可搜索名称、类型和路径；其他 HID 默认不加入，不支持标准输入控件的接口不能添加。HID 解析标准按键及通用桌面轴/方向帽，按 report ID 和控件维持基线，绝对轴需要 10% 范围变化；不根据整段字节变化认定活动。XInput 对应的 IG_ HID 接口排除，连接槽位每 32 ms 轮询，空槽位每两秒探测，初报及重连不算操作；按键变化和经过死区与阈值过滤的轴/扳机变化算活动。槽位不是稳定物理身份，界面和说明明确限制。
+
+设置新增默认管理员启动偏好与当前权限状态。AdministratorService 使用 runas 请求授权，提权子进程等待原进程退出后再获取单实例锁，取消启动保留原实例。普通 Run 登录自启仍会请求授权，不安装静默提权任务。时间来源使用本地化字符串 ItemsSource，切换语言时替换并恢复模式，同时抑制选择事件，避免显示缓存和意外计时重置。
 
 ## 目录与计划文件
 
@@ -85,6 +89,10 @@ IdleTracker + 有效 timeout -> IdleController -> ScreenSaverService -> 启动�
 - 已检测到屏保运行时不重复启动；会话锁定或系统挂起期间暂停触发，解锁或恢复时建立新基线。检测方式在实现时验证。
 
 ## 屏保服务与系统边界
+
+主页使用两组标题与设置卡片：IdleGuard 屏保设置下显示当前有效秒数和独立超时配置；Windows 屏保时间设置下选择屏保与系统秒数，不再显示独立的自动开关。窗口最小 660 × 660 逻辑像素，窄窗口使用 NavigationView 自动收拢侧栏。Windows 写入通过 BackgroundSettingsWriter 在工作线程按编辑顺序串行执行，避免 SPIF_SENDCHANGE 的系统广播阻塞 UI；写入中暂停配置回读与界面值覆盖，完成后回读。输入框事件捕获提交值，避免排队期间读取到后续编辑值。失败不阻塞后续写入；退出等待已接受的写入完成。输入监听与计时继续，待写入时暂缓新的屏保启动请求。
+
+Windows 屏保卡片提供双向设置：通过 `SystemParametersInfoW` 的 SET 动作更新系统 timeout / active，并使用 `SPIF_UPDATEINIFILE | SPIF_SENDCHANGE` 保存和通知；屏保选择写入 `SCRNSAVE.EXE`，随后更新 active，选择无时删除路径并关闭 active。每 5 秒和窗口重新激活时回读配置。界面回读使用事件抑制标志，不回写旧状态；编辑中的时间输入和展开的下拉框不会被定时刷新覆盖。IdleGuard 使用系统 timeout 时，外部 timeout 更改会建立新计时基线。枚举 Windows / System32 `.scr`，仅以资源方式加载名称字符串 1，保留当前外部路径；策略管理的设置只读。右上角打开 `control.exe desk.cpl,,@screensaver`。原生对话框尚未应用的值不属于已保存系统状态。
 
 ScreenSaverService 负责读取当前系统屏保配置、timeout 和运行状态，并通过 Windows 支持的方式请求启动已配置屏保。具体启动与状态检测方式在小原型中验证；没有配置屏保时显示提示，不把显示器关闭当作启动屏保成功。启动请求返回与屏保实际运行要分别判断。
 

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using IdleGuard.Models;
 
 namespace IdleGuard.Native;
 
@@ -10,6 +11,7 @@ internal sealed class InputMessageWindow : IDisposable
     private readonly InputNativeMethods.WindowProcedure _procedure;
     private readonly nint _instance = InputNativeMethods.GetModuleHandle(null);
     private bool _registered, _inputRegistered;
+    private HashSet<(ushort Page, ushort Usage)> _hidRegistrations = new();
     internal nint Handle { get; private set; }
     internal event Action<uint, nuint, nint>? Message;
     internal event Action<Exception>? Error;
@@ -46,6 +48,31 @@ internal sealed class InputMessageWindow : IDisposable
             throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
+    internal void SetHidDevices(IEnumerable<InputDevice> devices)
+    {
+        var desired = devices.Select(d => (Page: d.UsagePage, d.Usage)).Where(d => d.Page != 0 && d.Usage != 0
+            && !(d.Page == 1 && d.Usage is 2 or 6)).ToHashSet();
+        // Subscribe before a controller is connected so arrivals can populate the default list.
+        desired.UnionWith(new (ushort Page, ushort Usage)[] { (1, 4), (1, 5), (1, 8) });
+        foreach (var usage in desired.Except(_hidRegistrations).ToArray())
+        {
+            RegisterHid(usage, InputNativeMethods.InputSink | InputNativeMethods.DeviceNotify, Handle);
+            _hidRegistrations.Add(usage);
+        }
+        foreach (var usage in _hidRegistrations.Except(desired).ToArray())
+        {
+            RegisterHid(usage, InputNativeMethods.Remove, 0);
+            _hidRegistrations.Remove(usage);
+        }
+    }
+
+    private static void RegisterHid((ushort Page, ushort Usage) usage, uint flags, nint target)
+    {
+        InputNativeMethods.DeviceRegistration[] devices = [new() { UsagePage = usage.Page, Usage = usage.Usage, Flags = flags, Target = target }];
+        if (!InputNativeMethods.RegisterRawInputDevices(devices, 1, (uint)Marshal.SizeOf<InputNativeMethods.DeviceRegistration>()))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+    }
+
     private nint WndProc(nint window, uint message, nuint wParam, nint lParam)
     {
         // Never let a managed exception cross the native callback boundary.
@@ -59,6 +86,12 @@ internal sealed class InputMessageWindow : IDisposable
     {
         if (_inputRegistered)
         {
+            foreach (var usage in _hidRegistrations.ToArray())
+            {
+                try { RegisterHid(usage, InputNativeMethods.Remove, 0); }
+                catch (Win32Exception ex) { Error?.Invoke(ex); }
+            }
+            _hidRegistrations.Clear();
             try { RegisterInput(InputNativeMethods.Remove, 0); }
             catch (Win32Exception ex) { Error?.Invoke(ex); }
             _inputRegistered = false;

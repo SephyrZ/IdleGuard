@@ -27,6 +27,7 @@ device.IsEnabled = true;
 device.IsConnected = false;
 Check(!tracker.RecordActivity(DevicePolicy.Accepts(device)) && tracker.Idle.TotalSeconds == 4, "Offline device cannot reset idle");
 Check(!tracker.RecordActivity(DevicePolicy.Accepts(null)), "Unknown source cannot reset idle");
+Check(!DevicePolicy.Accepts(new InputDevice { Path = "unsupported", Kind = InputDeviceKind.Hid, IsConnected = true, CanMonitor = false }), "Unsupported interfaces cannot reset idle even if enabled");
 tracker.Pause();
 now += TimeSpan.FromHours(3);
 Check(tracker.Idle.TotalSeconds == 4 && !tracker.RecordActivity(true), "Suspended time and input do not change paused idle");
@@ -114,4 +115,151 @@ try
     Check(new AppSettings("invalid", false, -1).Validated() == new AppSettings(), "Invalid persisted values fall back to valid defaults");
 }
 finally { if (File.Exists(preferencesFile)) File.Delete(preferencesFile); }
+var controls = new ControlActivityFilter();
+Check(!controls.ValueChanged("axis", 0.5, 0.1), "First HID axis reading establishes baseline");
+Check(!controls.ValueChanged("axis", 0.55, 0.1), "HID axis jitter below travel threshold is ignored");
+Check(controls.ValueChanged("axis", 0.7, 0.1), "Intentional HID axis movement counts");
+Check(!controls.ValueChanged("axis", 0.7, 0.1), "Held HID axis cannot keep resetting idle");
+Check(!controls.ValueChanged("axis", double.NaN, 0.1), "Invalid analog values are ignored");
+Check(!controls.ValueChanged("other-report", 0.3, 0.1), "Separate HID report controls have independent baselines");
+Check(!controls.ButtonsChanged("buttons", new ushort[] { 1, 2 }), "First HID button report establishes baseline");
+Check(!controls.ButtonsChanged("buttons", new ushort[] { 2, 1 }), "HID button order is not activity");
+Check(controls.ButtonsChanged("buttons", new ushort[] { 2 }), "HID button release counts");
+Check(controls.ButtonsChanged("buttons", new ushort[] { 2, 3 }), "HID button press counts");
+controls.Clear();
+Check(!controls.ValueChanged("axis", 1, 0.1) && !controls.ButtonsChanged("buttons", Array.Empty<ushort>()), "Reconnect clears HID baselines without reporting input");
+
+var pad = new ControllerActivityFilter();
+Check(!pad.IsActivity(0, 0, 0, 0, 0, 0, 0), "Controller connection establishes baseline");
+Check(!pad.IsActivity(0, 30, 29, 7849, -7849, 8689, -8689), "Controller stick and trigger dead zones ignore drift");
+Check(!pad.IsActivity(0, 31, 0, 7850, 0, 8690, 0), "Jitter across dead-zone boundaries is ignored");
+Check(pad.IsActivity(0x1000, 0, 0, 0, 0, 0, 0), "Controller button press counts");
+Check(!pad.IsActivity(0x1000, 0, 0, 0, 0, 0, 0), "Held controller button does not repeat");
+Check(pad.IsActivity(0, 0, 0, 0, 0, 0, 0), "Controller button release counts");
+Check(pad.IsActivity(0, 0, 0, short.MaxValue, 0, 0, 0), "Controller stick movement counts");
+Check(!pad.IsActivity(0, 0, 0, 32500, 0, 0, 0), "Small movement around held controller axis is ignored");
+Check(pad.IsActivity(0, 100, 0, 32500, 0, 0, 0), "Controller trigger movement counts");
+Check(pad.IsActivity(0, 100, 0, short.MinValue, 0, 0, 0), "Negative full controller axis is handled without overflow");
+pad.Clear();
+Check(!pad.IsActivity(0x1000, 0, 0, short.MaxValue, 0, 0, 0), "Reconnected controller does not reset idle by attachment alone");
+
+Check(Marshal.SizeOf<ControllerNativeMethods.Gamepad>() == 12 && Marshal.SizeOf<ControllerNativeMethods.State>() == 16, "XInput native layouts");
+Check(Marshal.SizeOf<HidNativeMethods.Caps>() == 64 && Marshal.SizeOf<HidNativeMethods.ButtonCaps>() == 72
+    && Marshal.SizeOf<HidNativeMethods.ValueCaps>() == 72, "HID capability native layouts");
+Check(HidDeviceReader.SignedValue(0xFF, 8, true) == -1 && HidDeviceReader.SignedValue(0xFF, 8, false) == 255, "Signed HID axes use descriptor bit width");
+Check(HidDeviceReader.SignedValue(0x80000000, 32, true) == int.MinValue, "32-bit HID signed minimum");
+
+var rulesFile = Path.Combine(AppContext.BaseDirectory, $"device-rules-check-{Guid.NewGuid():N}.json");
+try
+{
+    var store = new SettingsStore(rulesFile);
+    store.Save(new AppSettings(RunAsAdministrator: true, DeviceRules: new() { ["OFFLINE-PATH"] = false, ["manual-hid"] = true }));
+    var loaded = store.Load();
+    Check(loaded.RunAsAdministrator && loaded.DeviceRules!["manual-hid"] && !loaded.DeviceRules["OFFLINE-PATH"], "Administrator preference and manual device choices survive reload");
+    var catalog = new DeviceCatalog();
+    catalog.ApplyRules(loaded.DeviceRules);
+    Check(!catalog.ExportRules()["offline-path"] && catalog.ExportRules()["manual-hid"], "Offline saved device choices survive enumeration gaps and use case-insensitive paths");
+    Check(!catalog.Add(new InputDevice { Path = "untrusted", Kind = InputDeviceKind.Hid, IsConnected = true }), "Devices outside the system catalog cannot be manually added");
+}
+finally { if (File.Exists(rulesFile)) File.Delete(rulesFile); }
+
+var backgroundWriter = new BackgroundSettingsWriter();
+using (var releaseWrite = new ManualResetEventSlim())
+{
+    var enteredWrite = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var writeOrder = new List<int>();
+    var firstWrite = backgroundWriter.Enqueue(() =>
+    {
+        enteredWrite.SetResult();
+        if (!releaseWrite.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException("Test did not release the write.");
+        writeOrder.Add(1);
+    });
+    try
+    {
+        await enteredWrite.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Check(!firstWrite.IsCompleted, "A blocked Windows setting write returns control to the caller");
+        var secondWrite = backgroundWriter.Enqueue(() => writeOrder.Add(2));
+        Check(!secondWrite.IsCompleted, "New setting edits wait behind an unfinished write");
+        releaseWrite.Set();
+        await Task.WhenAll(firstWrite, secondWrite).WaitAsync(TimeSpan.FromSeconds(5));
+        Check(writeOrder.SequenceEqual(new[] { 1, 2 }), "Background settings writes preserve edit order");
+    }
+    finally { releaseWrite.Set(); }
+}
+var failingWrite = backgroundWriter.Enqueue(() => throw new InvalidOperationException("Expected failure"));
+var recoveredWrite = false;
+var nextWrite = backgroundWriter.Enqueue(() => recoveredWrite = true);
+try { await failingWrite; }
+catch (InvalidOperationException) { }
+await nextWrite.WaitAsync(TimeSpan.FromSeconds(5));
+Check(recoveredWrite, "A failed system write does not block later setting edits");
+await backgroundWriter.DrainAsync();
+
+if (OperatingSystem.IsWindows())
+{
+    using (var icons = new AppIcons(0))
+    {
+        Check(icons.Small != 0 && icons.Large != 0 && icons.Small != icons.Large, "Embedded small and full icon frames load as independent native icons");
+        icons.Dispose();
+        Check(icons.Small == 0 && icons.Large == 0, "Application icon handles are released and disposal is repeatable");
+    }
+    var saverService = new ScreenSaverService();
+    var saverConfig = saverService.ReadConfiguration();
+    var saverChoices = saverService.GetChoices("(None)", saverConfig.Path);
+    Check(saverChoices[0].Path is null, "Screensaver list includes None without executing saver code");
+    Check(saverChoices.Skip(1).All(choice => !string.IsNullOrWhiteSpace(choice.Name) && System.IO.Path.IsPathRooted(choice.Path!)), "Installed screensavers have display names and absolute paths");
+    Check(saverChoices.Select(choice => choice.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count() == saverChoices.Count, "Screensaver paths are deduplicated");
+    var resolvedCurrentSaver = saverConfig.Path is null ? null : ScreenSaverService.ResolvePath(saverConfig.Path);
+    Check(saverConfig.Path is null || saverChoices.Any(choice => string.Equals(choice.Path, resolvedCurrentSaver, StringComparison.OrdinalIgnoreCase)), "Current third-party screensaver is retained in the picker");
+    foreach (var invalidTimeout in new[] { 0, -1 })
+    {
+        bool rejected = false;
+        try { saverService.SetTimeout(invalidTimeout); }
+        catch (ArgumentOutOfRangeException) { rejected = true; }
+        Check(rejected, "Invalid system timeout is rejected before writing Windows settings");
+    }
+    Console.WriteLine($"Screensaver read-only check: {saverChoices.Count - 1} choices, {saverConfig.TimeoutSeconds}s, automatic={saverConfig.AutomaticEnabled}.");
+    if (args.Contains("--system-settings-roundtrip") && !saverConfig.IsManaged && saverConfig.TimeoutSeconds > 0)
+    {
+        var originalPath = saverConfig.Path is null ? null : ScreenSaverService.ResolvePath(saverConfig.Path);
+        try
+        {
+            saverService.SetAutomatic(false);
+            Check(!saverService.ReadConfiguration().AutomaticEnabled, "Windows automatic screensaver write is read back");
+            var testTimeout = saverConfig.TimeoutSeconds < int.MaxValue - 60 ? saverConfig.TimeoutSeconds + 60 : 600;
+            saverService.SetTimeout(testTimeout);
+            Check(saverService.ReadConfiguration().TimeoutSeconds == testTimeout, "Windows timeout write is read back through SystemParametersInfo");
+            var alternative = saverChoices.FirstOrDefault(choice => choice.Path is not null && File.Exists(choice.Path) && !string.Equals(choice.Path, originalPath, StringComparison.OrdinalIgnoreCase));
+            if (alternative is not null)
+            {
+                saverService.SetScreenSaver(alternative.Path);
+                Check(saverService.ReadConfiguration().Path == alternative.Path, "Installed screensaver selection is read back without launching it");
+            }
+            saverService.SetScreenSaver(null);
+            var none = saverService.ReadConfiguration();
+            Check(none.Path is null && !none.AutomaticEnabled, "Selecting None removes the saver and disables Windows automatic startup");
+        }
+        finally
+        {
+            saverService.SetScreenSaver(originalPath);
+            saverService.SetTimeout(saverConfig.TimeoutSeconds);
+            saverService.SetAutomatic(saverConfig.AutomaticEnabled);
+        }
+        var restored = saverService.ReadConfiguration();
+        Check(restored.Path == originalPath && restored.TimeoutSeconds == saverConfig.TimeoutSeconds && restored.AutomaticEnabled == saverConfig.AutomaticEnabled, "Original Windows screensaver configuration restored after round-trip check");
+    }
+    using var monitor = new InputMonitor();
+    Check(monitor.Error is null, "Native input window, HID enumeration and XInput initialize without errors");
+    Check(monitor.Catalog.Devices.All(d => d.Kind != InputDeviceKind.Hid), "Other HID interfaces require explicit manual addition");
+    var candidate = monitor.Catalog.Available.FirstOrDefault(d => d.Kind == InputDeviceKind.Hid && d.IsConnected && d.CanMonitor);
+    if (candidate is not null)
+    {
+        Check(monitor.Catalog.Add(candidate), "A supported connected HID can be manually added");
+        monitor.RefreshDevices();
+        Check(monitor.Error is null && monitor.Catalog.Devices.Contains(candidate), "Manual HID registration succeeds and survives refresh");
+        candidate.IsEnabled = false;
+        Check(!monitor.Catalog.ExportRules()[candidate.Path], "Disabled manual HID choice is retained");
+    }
+    Console.WriteLine($"Native smoke check: {monitor.Catalog.Devices.Count} monitored, {monitor.Catalog.Available.Count} system input interfaces.");
+}
 Console.WriteLine($"All {passed} checks passed.");

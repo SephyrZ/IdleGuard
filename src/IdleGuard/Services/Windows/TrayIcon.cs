@@ -15,7 +15,7 @@ internal sealed class TrayIcon : IDisposable
     private bool _disposed;
     internal bool Available { get; private set; }
 
-    internal TrayIcon(nint window, Action open, Action startup, Action monitor, Action exit,
+    internal TrayIcon(nint window, nint icon, Action open, Action startup, Action monitor, Action exit,
         Func<bool> startupEnabled, Func<bool> monitorEnabled, Action<Exception> error)
     {
         _open = open; _startup = startup; _monitor = monitor; _exit = exit;
@@ -23,7 +23,7 @@ internal sealed class TrayIcon : IDisposable
         _procedure = WndProc;
         _data = new() { Size = (uint)Marshal.SizeOf<TrayNativeMethods.NotifyIconData>(), Window = window,
             Id = 1, Flags = 1 | 2 | 4, CallbackMessage = TrayNativeMethods.Callback,
-            Icon = TrayNativeMethods.LoadIcon(0, 32512), Tip = "IdleGuard", Info = "", InfoTitle = "" };
+            Icon = icon, Tip = "IdleGuard", Info = "", InfoTitle = "" };
         if (!TrayNativeMethods.SetWindowSubclass(window, _procedure, 1, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
         try { Add(); }
         catch { TrayNativeMethods.RemoveWindowSubclass(window, _procedure, 1); throw; }

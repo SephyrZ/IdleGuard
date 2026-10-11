@@ -52,4 +52,6 @@ internal static class TrayNativeMethods
     [DllImport("user32.dll", SetLastError = true)] internal static extern uint TrackPopupMenu(nint menu, uint flags, int x, int y, int reserved, nint window, nint rect);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool ShowWindow(nint window, int command);
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool IsIconic(nint window);
 }

@@ -1,6 +1,7 @@
 namespace IdleGuard.Models;
 
-public sealed record AppSettings(string Language = "zh-CN", bool UseSystemTimeout = false, int CustomTimeoutSeconds = 600, bool MonitoringEnabled = false)
+public sealed record AppSettings(string Language = "zh-CN", bool UseSystemTimeout = false, int CustomTimeoutSeconds = 600, bool MonitoringEnabled = false,
+    bool RunAsAdministrator = false, Dictionary<string, bool>? DeviceRules = null)
 {
     public AppSettings Validated() => this with
     {

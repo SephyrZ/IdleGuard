@@ -13,61 +13,83 @@
             <Style x:Key="Hint" TargetType="TextBlock">
                 <Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             </Style>
+            <Style x:Key="SettingCard" TargetType="Border" BasedOn="{StaticResource Card}">
+                <Setter Property="Padding" Value="20,14" />
+                <Setter Property="MinHeight" Value="68" />
+            </Style>
+            <Style x:Key="OpenSettingsIconButton" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="8" />
+                <Setter Property="MinWidth" Value="32" />
+                <Setter Property="MinHeight" Value="32" />
+            </Style>
         </Grid.Resources>
         <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid x:Name="TitleBarArea" Background="Transparent" Padding="16,0,150,0">
-            <TextBlock x:Name="WindowTitleText" Text="IdleGuard" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Image x:Name="TitleIcon" Width="16" Height="16" />
+                <TextBlock x:Name="WindowTitleText" Text="IdleGuard" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
         </Grid>
-        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="Left" OpenPaneLength="224"
+        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="LeftCompact" OpenPaneLength="224"
             IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
             IsTitleBarAutoPaddingEnabled="False" SelectionChanged="Navigation_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="HomeNav" Content="{Binding [Home]}" Tag="home" Icon="Home" />
-                <NavigationViewItem Content="{Binding [Devices]}" Tag="devices" Icon="ViewAll" />
+                <NavigationViewItem x:Name="HomeNav" Content="{Binding [Home]}" Tag="home">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xF182;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="{Binding [Devices]}" Tag="devices">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE961;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="{Binding [About]}" Tag="about" Icon="Help" />
+                <NavigationViewItem Content="{Binding [About]}" Tag="about">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE946;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="{Binding [Settings]}" Tag="settings" Icon="Setting" />
             </NavigationView.FooterMenuItems>
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <ScrollViewer x:Name="HomePage" Background="Transparent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
-                    <StackPanel Margin="32,28,32,24" Spacing="20" HorizontalAlignment="Stretch">
+                    <StackPanel Margin="32,28,32,24" HorizontalAlignment="Stretch">
                         <StackPanel Spacing="8"><TextBlock Text="{Binding [HomeTitle]}" Style="{StaticResource TitleTextBlockStyle}" TextWrapping="Wrap" /><TextBlock Text="{Binding [HomeSubtitle]}" Style="{StaticResource Hint}" /></StackPanel>
-                        <Border Style="{StaticResource Card}">
+                        <TextBlock Text="{Binding [IdleGuardSettings]}" FontSize="16" FontWeight="SemiBold" Margin="0,28,0,4" />
+                        <TextBlock x:Name="EffectiveTimeoutText" Style="{StaticResource Hint}" FontSize="14" Margin="0,0,0,12" />
+                        <Border Style="{StaticResource SettingCard}">
                             <StackPanel Spacing="16">
-                                <TextBlock Text="{Binding [TimingTitle]}" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <Grid ColumnSpacing="24">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding [TimeoutSource]}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <ComboBox x:Name="TimeoutSourceBox" Grid.Column="1" Width="260" AutomationProperties.Name="{Binding [TimeoutSource]}" SelectionChanged="TimeoutSource_Changed">
-                                        <ComboBoxItem x:Name="CustomTimeoutItem" /><ComboBoxItem x:Name="SystemTimeoutItem" />
-                                    </ComboBox>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding [ScreenSaverTimeout]}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    <ComboBox x:Name="TimeoutSourceBox" Grid.Column="1" Width="180" AutomationProperties.Name="{Binding [TimeoutSource]}" SelectionChanged="TimeoutSource_Changed" />
+                                    <StackPanel x:Name="CustomTimeoutRow" Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                        <NumberBox x:Name="TimeoutBox" Width="110" AutomationProperties.Name="{Binding [CustomSeconds]}" Minimum="1" Maximum="86400" SpinButtonPlacementMode="Hidden" ValueChanged="Timeout_ValueChanged" />
+                                        <TextBlock Text="{Binding [SecondsUnit]}" VerticalAlignment="Center" />
+                                    </StackPanel>
                                 </Grid>
-                                <Grid x:Name="CustomTimeoutRow" ColumnSpacing="24">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding [CustomSeconds]}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <NumberBox x:Name="TimeoutBox" Grid.Column="1" Width="120" AutomationProperties.Name="{Binding [CustomSeconds]}" Minimum="1" Maximum="86400" SpinButtonPlacementMode="Hidden" ValueChanged="Timeout_ValueChanged" />
-                                </Grid>
-                                <TextBlock x:Name="EffectiveTimeoutText" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding [TimingHelp]}" Style="{StaticResource Hint}" />
                                 <Button x:Name="MonitoringButton" Content="{Binding [StartMonitoring]}" Click="Monitoring_Click" Style="{StaticResource AccentButtonStyle}" />
                             </StackPanel>
                         </Border>
-                        <Border Style="{StaticResource Card}">
+                        <TextBlock Text="{Binding [WindowsTimingSettings]}" FontSize="16" FontWeight="SemiBold" Margin="0,28,0,12" />
+                        <Border Style="{StaticResource SettingCard}">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="{Binding [ScreenSaverTitle]}" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <TextBlock Text="{Binding [ConfiguredSaver]}" Style="{StaticResource Hint}" /><TextBlock x:Name="ScreenSaverText" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                                <Grid ColumnSpacing="20" RowSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                    <TextBlock Text="{Binding [SystemTimeout]}"/><TextBlock x:Name="TimeoutText" Grid.Column="1"/>
-                                    <TextBlock Text="{Binding [Automatic]}" Grid.Row="1"/><TextBlock x:Name="AutomaticText" Grid.Row="1" Grid.Column="1"/>
-                                    <TextBlock Text="{Binding [Running]}" Grid.Row="2"/><TextBlock x:Name="RunningText" Grid.Row="2" Grid.Column="1"/>
+                                <Grid ColumnSpacing="12" RowSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding [ConfiguredSaver]}" VerticalAlignment="Center" />
+                                        <Button Style="{StaticResource OpenSettingsIconButton}" Click="OpenScreenSaverSettings_Click" AutomationProperties.Name="{Binding [OpenSystemSettings]}" ToolTipService.ToolTip="{Binding [OpenSystemSettings]}"><FontIcon Glyph="&#xE8A7;" FontSize="16" /></Button>
+                                    </StackPanel>
+                                    <ComboBox x:Name="SystemSaverBox" Grid.Column="1" Width="180" DisplayMemberPath="Name" AutomationProperties.Name="{Binding [ConfiguredSaver]}" SelectionChanged="SystemSaver_Changed" DropDownOpened="SystemSaver_Opened" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                        <NumberBox x:Name="SystemTimeoutBox" Width="110" Minimum="1" Maximum="2147483647" SpinButtonPlacementMode="Hidden" AutomationProperties.Name="{Binding [SystemTimeout]}" ValueChanged="SystemTimeout_Changed" />
+                                        <TextBlock Text="{Binding [SecondsUnit]}" VerticalAlignment="Center" />
+                                    </StackPanel>
                                 </Grid>
+                                <TextBlock x:Name="SystemSettingsErrorText" Style="{StaticResource Hint}" Visibility="Collapsed" />
+                                <TextBlock x:Name="SystemManagedText" Text="{Binding [SystemManaged]}" Style="{StaticResource Hint}" Visibility="Collapsed" />
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="{Binding [CoexistHelp]}" Style="{StaticResource Hint}" />
+                        <TextBlock Text="{Binding [CoexistHelp]}" Style="{StaticResource Hint}" Margin="0,16,0,0" />
                     </StackPanel>
                 </ScrollViewer>
                 <ScrollViewer x:Name="DevicesPage" Visibility="Collapsed" Background="Transparent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
@@ -76,16 +98,22 @@
                         <Border Style="{StaticResource Card}">
                             <StackPanel Spacing="12">
                                 <TextBlock x:Name="MonitorText" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding [LatestInput]}" Style="{StaticResource Hint}" /><TextBlock x:Name="ActivityText" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding [LatestInput]}" Style="{StaticResource Hint}" />
+                                <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon x:Name="ActivityIcon" FontSize="18" VerticalAlignment="Top" Margin="0,2,0,0" Visibility="Collapsed" /><TextBlock x:Name="ActivityText" Grid.Column="1" TextWrapping="Wrap" /></Grid>
                                 <TextBlock x:Name="CountsText" Style="{StaticResource Hint}" />
                             </StackPanel>
                         </Border>
                         <TextBlock Text="{Binding [DeviceList]}" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding [DevicesHelp]}" Style="{StaticResource Hint}" />
                         <Grid ColumnSpacing="20">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Button Content="{Binding [RefreshDevices]}" Click="RefreshDevices_Click" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Button Click="RefreshDevices_Click" VerticalAlignment="Center" AutomationProperties.Name="{Binding [RefreshDevices]}">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="14" /><TextBlock Text="{Binding [RefreshDevices]}" /></StackPanel>
+                            </Button>
+                            <Button Grid.Column="1" Click="AddDevice_Click" VerticalAlignment="Center" AutomationProperties.Name="{Binding [AddDevice]}">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="14" /><TextBlock Text="{Binding [AddDevice]}" /></StackPanel>
+                            </Button>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding [ShowDeviceIds]}" VerticalAlignment="Center" />
                                 <ToggleSwitch x:Name="ShowDeviceIds" AutomationProperties.Name="{Binding [ShowDeviceIds]}" OffContent="" OnContent="" MinWidth="0" Toggled="ShowDeviceIds_Toggled" />
                             </StackPanel>
@@ -96,8 +124,10 @@
                                 <DataTemplate x:DataType="models:InputDevice">
                                     <Border Padding="16" Margin="0,0,0,8" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <StackPanel Spacing="4">
-                                            <CheckBox Content="{x:Bind DisplayName, Mode=OneWay}" IsChecked="{x:Bind IsEnabled, Mode=TwoWay}" />
-                                            <TextBlock Text="{x:Bind Path}" Visibility="{x:Bind ShowId, Mode=OneWay}" Margin="32,0,0,0" FontSize="12" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <CheckBox IsChecked="{x:Bind IsEnabled, Mode=TwoWay}" AutomationProperties.Name="{x:Bind DisplayName, Mode=OneWay}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="{x:Bind IconGlyph}" FontSize="18" /><TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" /></StackPanel>
+                                            </CheckBox>
+                                            <TextBlock Text="{x:Bind Path}" Visibility="{x:Bind ShowId, Mode=OneWay}" Margin="58,0,0,0" FontSize="12" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -107,43 +137,62 @@
                     </StackPanel>
                 </ScrollViewer>
                 <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" Background="Transparent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
-                    <StackPanel Margin="32,28,32,24" Spacing="20" HorizontalAlignment="Stretch">
-                        <StackPanel Spacing="8"><TextBlock Text="{Binding [SettingsTitle]}" Style="{StaticResource TitleTextBlockStyle}"/><TextBlock Text="{Binding [SettingsSubtitle]}" Style="{StaticResource Hint}"/></StackPanel>
-                        <Border Style="{StaticResource Card}">
-                            <Grid ColumnSpacing="24">
+                    <StackPanel Margin="32,28,32,24" HorizontalAlignment="Stretch">
+                        <TextBlock Text="{Binding [SettingsTitle]}" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,24" />
+                        <TextBlock Text="{Binding [GeneralSettings]}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <FontIcon Glyph="&#xE8C1;" FontSize="24" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding [Language]}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding [LanguageHelp]}" Style="{StaticResource Hint}" FontSize="12" />
-                                </StackPanel>
-                                <ComboBox x:Name="LanguageBox" Grid.Column="2" Width="200" VerticalAlignment="Center" AutomationProperties.Name="{Binding [Language]}" SelectionChanged="Language_Changed">
+                                <FontIcon Glyph="&#xF2B7;" FontSize="22" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding [Language]}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                <ComboBox x:Name="LanguageBox" Grid.Column="2" Width="200" VerticalAlignment="Center" AutomationProperties.Name="{Binding [Language]}" ToolTipService.ToolTip="{Binding [LanguageHelp]}" SelectionChanged="Language_Changed">
                                     <ComboBoxItem Content="简体中文" Tag="zh-CN" /><ComboBoxItem Content="English" Tag="en-US" />
                                 </ComboBox>
                             </Grid>
                         </Border>
-                        <Border Style="{StaticResource Card}">
-                            <Grid ColumnSpacing="24">
+                        <TextBlock Text="{Binding [StartupSettings]}" FontSize="16" FontWeight="SemiBold" Margin="0,28,0,8" />
+                        <StackPanel Spacing="4">
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <FontIcon Glyph="&#xE7E8;" FontSize="24" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE7E8;" FontSize="22" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding [LaunchAtStartup]}" TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding [StartupHelp]}" Style="{StaticResource Hint}" FontSize="12" />
                                 </StackPanel>
                                 <ToggleSwitch x:Name="StartupToggle" Grid.Column="2" AutomationProperties.Name="{Binding [LaunchAtStartup]}" OffContent="" OnContent="" MinWidth="0" VerticalAlignment="Center" Toggled="Startup_Toggled" />
                             </Grid>
                         </Border>
-                        <TextBlock x:Name="StartupErrorText" TextWrapping="Wrap" />
-                        <TextBlock x:Name="TrayErrorText" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding [SaveHelp]}" Style="{StaticResource Hint}" /><TextBlock x:Name="PreferencesErrorText" TextWrapping="Wrap" />
+                        <Border Style="{StaticResource SettingCard}">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE7EF;" FontSize="22" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding [RunAsAdministrator]}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding [AdministratorHelp]}" Style="{StaticResource Hint}" FontSize="12" />
+                                        <TextBlock x:Name="AdministratorStatusText" Style="{StaticResource Hint}" FontSize="12" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="AdministratorToggle" Grid.Column="2" AutomationProperties.Name="{Binding [RunAsAdministrator]}" OffContent="" OnContent="" MinWidth="0" VerticalAlignment="Center" Toggled="Administrator_Toggled" />
+                                </Grid>
+                        </Border>
+                        </StackPanel>
+                        <StackPanel Spacing="8" Margin="0,12,0,0">
+                            <Button x:Name="AdministratorRestartButton" Content="{Binding [RestartAsAdministrator]}" Click="RestartAsAdministrator_Click" />
+                            <TextBlock x:Name="StartupErrorText" TextWrapping="Wrap" Visibility="Collapsed" />
+                            <TextBlock x:Name="AdministratorErrorText" TextWrapping="Wrap" Visibility="Collapsed" />
+                            <TextBlock x:Name="TrayErrorText" TextWrapping="Wrap" Visibility="Collapsed" />
+                            <TextBlock x:Name="PreferencesErrorText" TextWrapping="Wrap" Visibility="Collapsed" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding [SaveHelp]}" Style="{StaticResource Hint}" FontSize="12" Margin="0,20,0,0" />
                     </StackPanel>
                 </ScrollViewer>
                 <ScrollViewer x:Name="AboutPage" Visibility="Collapsed" Background="Transparent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
                     <StackPanel Margin="32,28,32,24" Spacing="20" HorizontalAlignment="Stretch">
                         <TextBlock Text="{Binding [AboutTitle]}" Style="{StaticResource TitleTextBlockStyle}" />
                         <Border Style="{StaticResource Card}"><StackPanel Spacing="16">
-                            <FontIcon Glyph="&#xE7F4;" FontSize="40" HorizontalAlignment="Left" /><TextBlock Text="IdleGuard" FontSize="32" FontWeight="SemiBold" />
+                            <Image x:Name="AboutAppIcon" Width="96" Height="96" HorizontalAlignment="Left" /><TextBlock Text="IdleGuard" FontSize="32" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding [Version]}" Style="{StaticResource Hint}" /><TextBlock Text="{Binding [AboutDescription]}" TextWrapping="Wrap" /><TextBlock Text="{Binding [AboutScope]}" Style="{StaticResource Hint}" />
+                            <HyperlinkButton Content="GitHub · SephyrZ/IdleGuard" NavigateUri="https://github.com/SephyrZ/IdleGuard" HorizontalAlignment="Left" />
                         </StackPanel></Border>
                     </StackPanel>
                 </ScrollViewer>
@@ -155,7 +204,10 @@
                             <TextBlock x:Name="IdleText" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <TextBlock x:Name="RemainingText" Style="{StaticResource Hint}" VerticalAlignment="Center" />
                         </StackPanel>
-                        <TextBlock x:Name="CurrentTimeText" Grid.Column="1" FontSize="16" VerticalAlignment="Center" AutomationProperties.Name="{Binding [CurrentTime]}" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding [CurrentTime]}" Style="{StaticResource Hint}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="CurrentTimeText" FontSize="16" VerticalAlignment="Center" AutomationProperties.Name="{Binding [CurrentTime]}" />
+                        </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                             <Button x:Name="StartButton" Content="{Binding [Test]}" Click="Start_Click" ToolTipService.ToolTip="{Binding [TestHelp]}" />
                         </StackPanel>

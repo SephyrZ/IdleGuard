@@ -5,6 +5,7 @@
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>IdleGuard</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -17,6 +18,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Strings/en-US.json" LogicalName="IdleGuard.Strings.en-US.json" />
     <EmbeddedResource Include="Strings/zh-CN.json" LogicalName="IdleGuard.Strings.zh-CN.json" />
+    <EmbeddedResource Include="Assets/AppIcon.ico" LogicalName="IdleGuard.Assets.AppIcon.ico" />
+    <EmbeddedResource Include="Assets/AppIcon.small.png" LogicalName="IdleGuard.Assets.AppIcon.small.png" />
+    <EmbeddedResource Include="Assets/AppIcon.full.png" LogicalName="IdleGuard.Assets.AppIcon.full.png" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />

@@ -6,6 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/IdleGuard/Models/InputActivity.cs" Link="InputActivity.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/ControlActivityFilter.cs" Link="ControlActivityFilter.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/ControllerActivityFilter.cs" Link="ControllerActivityFilter.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/HidDeviceReader.cs" Link="HidDeviceReader.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/XInputSource.cs" Link="XInputSource.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/DeviceCatalog.cs" Link="DeviceCatalog.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/InputMonitor.cs" Link="InputMonitor.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Input/RawInputSource.cs" Link="RawInputSource.cs" />
+    <Compile Include="../../src/IdleGuard/Native/HidNativeMethods.cs" Link="HidNativeMethods.cs" />
+    <Compile Include="../../src/IdleGuard/Native/ControllerNativeMethods.cs" Link="ControllerNativeMethods.cs" />
+    <Compile Include="../../src/IdleGuard/Native/InputMessageWindow.cs" Link="InputMessageWindow.cs" />
     <Compile Include="../../src/IdleGuard/Services/LocalizationService.cs" Link="LocalizationService.cs" />
     <Compile Include="../../src/IdleGuard/Services/IdleController.cs" Link="IdleController.cs" />
     <Compile Include="../../src/IdleGuard/Services/SettingsStore.cs" Link="SettingsStore.cs" />
@@ -19,5 +30,10 @@
     <Compile Include="../../src/IdleGuard/Native/InputNativeMethods.cs" Link="InputNativeMethods.cs" />
     <Compile Include="../../src/IdleGuard/Native/TrayNativeMethods.cs" Link="TrayNativeMethods.cs" />
     <Compile Include="../../src/IdleGuard/Services/Windows/StartupService.cs" Link="StartupService.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Windows/ScreenSaverService.cs" Link="ScreenSaverService.cs" />
+    <Compile Include="../../src/IdleGuard/Services/BackgroundSettingsWriter.cs" Link="BackgroundSettingsWriter.cs" />
+    <Compile Include="../../src/IdleGuard/Native/NativeMethods.cs" Link="NativeMethods.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Windows/AppIcons.cs" Link="AppIcons.cs" />
+    <EmbeddedResource Include="../../src/IdleGuard/Assets/AppIcon.ico" LogicalName="IdleGuard.Assets.AppIcon.ico" />
   </ItemGroup>
 </Project>
