@@ -14,6 +14,41 @@ void Check(bool condition, string name)
     Console.WriteLine($"PASS: {name}");
 }
 
+Check(PowerRequestService.ParseDisplayRequest("DISPLAY:\r\n[PROCESS] C:\\Browser\\chrome.exe\r\nVideo Wake Lock\r\n\r\nSYSTEM:\r\nNone.\r\n"),
+    "A persistent browser DISPLAY request is detected");
+Check(PowerRequestService.ParseDisplayRequest("DISPLAY:\n[驱动程序] 显示驱动\n原因\nSYSTEM:\n无。\n"),
+    "Localized driver DISPLAY requests are also respected");
+Check(!PowerRequestService.ParseDisplayRequest("DISPLAY:\r\nNone.\r\n\r\nSYSTEM:\r\n[PROCESS] downloader.exe\r\nEXECUTION:\r\n[PROCESS] worker.exe\r\n"),
+    "System and execution requests alone do not defer the screensaver");
+Check(!PowerRequestService.ParseDisplayRequest("DISPLAY:\n无。\n\nSYSTEM:\n无。\n"),
+    "Chinese no-request output does not depend on console text encoding");
+var requestSources = PowerRequestService.ParseDisplayRequestSources("DISPLAY:\r\n[PROCESS] \\Device\\HarddiskVolume3\\视频 播放器\\PotPlayer.exe\r\n视频播放\r\n[DRIVER] USB Audio Device\r\nAudio Stream\r\n[PROCESS] \\Device\\HarddiskVolume3\\视频 播放器\\PotPlayer.exe\r\nSYSTEM:\r\n[PROCESS] ignored.exe\r\n");
+Check(requestSources.SequenceEqual(new[] { @"\Device\HarddiskVolume3\视频 播放器\PotPlayer.exe", "USB Audio Device" }),
+    "Tooltip and clipboard sources preserve Unicode and spaces, deduplicate, and exclude reasons and SYSTEM requests");
+foreach (var malformed in new[] { "This command requires administrator privileges.", "DISPLAY:\nNone.\n", "DISPLAY:\n\nSYSTEM:\nNone.\n", "DISPLAY:\n[PROCESS\nSYSTEM:\nNone.\n" })
+{
+    var rejected = false;
+    try { PowerRequestService.ParseDisplayRequest(malformed); }
+    catch (FormatException) { rejected = true; }
+    Check(rejected, "Failed or incomplete powercfg output cannot be treated as no requests");
+}
+
+var powerNow = TimeSpan.Zero;
+var powerTracker = new IdleTracker(() => powerNow);
+var powerController = new IdleController();
+var powerTimeout = TimeSpan.FromMinutes(5);
+powerController.Enable(powerTracker.Cycle);
+powerNow += powerTimeout;
+Check(powerController.Evaluate(powerTracker.Idle, powerTimeout, powerTracker.Cycle, false, false), "Display check is reached only at the idle deadline");
+powerTracker.Restart();
+powerController.Enable(powerTracker.Cycle);
+Check(powerTracker.Idle == TimeSpan.Zero && !powerController.Evaluate(powerTracker.Idle, powerTimeout, powerTracker.Cycle, false, false),
+    "A display request restarts a full idle cycle without leaving the controller triggering");
+powerNow += powerTimeout - TimeSpan.FromSeconds(1);
+Check(!powerController.Evaluate(powerTracker.Idle, powerTimeout, powerTracker.Cycle, false, false), "No repeated automatic check before the next full timeout");
+powerNow += TimeSpan.FromSeconds(1);
+Check(powerController.Evaluate(powerTracker.Idle, powerTimeout, powerTracker.Cycle, false, false), "The next full timeout permits a fresh display check");
+
 var now = TimeSpan.Zero;
 var tracker = new IdleTracker(() => now);
 var device = new InputDevice { Path = "test-keyboard", Name = "Keyboard", Kind = InputDeviceKind.Keyboard, IsConnected = true };
@@ -197,6 +232,17 @@ await backgroundWriter.DrainAsync();
 
 if (OperatingSystem.IsWindows())
 {
+    try
+    {
+        var displayRequested = await new PowerRequestService().HasDisplayRequestAsync(CancellationToken.None);
+        Check(true, $"Live powercfg query parsed successfully (DISPLAY active: {displayRequested})");
+    }
+    catch (Exception ex) when (ex is IOException or FormatException)
+    {
+        Check(ex.Message.Contains("powercfg", StringComparison.OrdinalIgnoreCase),
+            "Live powercfg permission/output failure is surfaced instead of returning no requests");
+        Console.WriteLine($"Power request query unavailable: {ex.Message}");
+    }
     using (var icons = new AppIcons(0))
     {
         Check(icons.Small != 0 && icons.Large != 0 && icons.Small != icons.Large, "Embedded small and full icon frames load as independent native icons");

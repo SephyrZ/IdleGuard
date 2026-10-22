@@ -4,6 +4,14 @@ namespace IdleGuard.Native;
 
 internal static class NativeMethods
 {
+    internal const uint DwmUseImmersiveDarkMode = 20;
+    internal const uint DwmBorderColor = 34;
+    internal const uint DwmColorNone = 0xFFFFFFFE;
+    internal const uint DwmColorDefault = 0xFFFFFFFF;
+
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmSetWindowAttribute(nint window, uint attribute, in uint value, uint size);
+
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(nint window);
     internal const uint GetScreenSaverActive = 0x0010;

@@ -123,7 +123,7 @@
   "AddDevice": "添加设备",
   "RestartAsAdministrator": "立即以管理员身份重启",
   "AdministratorActive": "当前以管理员身份运行",
-  "AdministratorHelp": "普通权限可能无法读取管理员程序中的输入。",
+  "AdministratorHelp": "自动启动屏保前检查保持显示开启请求需要管理员权限；普通权限也可能无法读取管理员程序中的输入。",
   "Cancel": "取消",
   "NoMatchingDevices": "没有找到其他匹配的输入设备。",
   "SearchDevices": "搜索名称、类型或设备路径",
@@ -134,5 +134,12 @@
   "ControllerInput": "手柄操作",
   "AdministratorError": "无法以管理员身份重启：{0}",
   "UnsupportedInput": "没有受支持的输入控件",
-  "AdministratorInactive": "当前以普通权限运行"
+  "AdministratorInactive": "当前以普通权限运行",
+  "PowerRequestCheckFailed": "无法检查保持显示开启请求。请以管理员身份运行 IdleGuard 后重试监控。详情：{0}",
+  "DisplayRequestDeferred": "应用或驱动正在请求保持显示开启，已重新开始 IdleGuard 空闲计时。",
+  "DisplayRequestPrefix": "",
+  "DisplayRequestSourceLink": "应用或驱动",
+  "DisplayRequestSuffix": "正在请求保持显示开启，已重新开始 IdleGuard 空闲计时。",
+  "RequestPathCopied": "已复制路径",
+  "RequestPathCopyFailed": "复制路径失败，请重试。"
 }

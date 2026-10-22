@@ -90,6 +90,8 @@ IdleTracker + 有效 timeout -> IdleController -> ScreenSaverService -> 启动�
 
 ## 屏保服务与系统边界
 
+自动触发到达 timeout 后，通过 PowerRequestService 在后台隐藏执行一次 `powercfg /requests`，只解析 DISPLAY 段。有任意应用、服务或驱动请求保持显示开启时，IdleTracker.Restart 建立新周期，控制器返回 Monitoring，等待下一个完整 timeout 再检查；不增加固定间隔查询。不把 SYSTEM / EXECUTION 请求当作保持显示请求。手动测试跳过该检查。查询期间沿用请求防重入；查询完成后校验周期、暂停状态、控制器状态及待写设置，防止接受新输入或暂停后仍按旧计时启动。查询限制 10 秒，退出取消并终止子进程。非零退出码、不可识别输出和超时进入明确错误，需重试；powercfg 查询需要管理员权限。此机制不枚举软件内部拦截屏保命令的行为，也不修改 Windows 的请求或系统屏保定时。
+
 主页使用两组标题与设置卡片：IdleGuard 屏保设置下显示当前有效秒数和独立超时配置；Windows 屏保时间设置下选择屏保与系统秒数，不再显示独立的自动开关。窗口最小 660 × 660 逻辑像素，窄窗口使用 NavigationView 自动收拢侧栏。Windows 写入通过 BackgroundSettingsWriter 在工作线程按编辑顺序串行执行，避免 SPIF_SENDCHANGE 的系统广播阻塞 UI；写入中暂停配置回读与界面值覆盖，完成后回读。输入框事件捕获提交值，避免排队期间读取到后续编辑值。失败不阻塞后续写入；退出等待已接受的写入完成。输入监听与计时继续，待写入时暂缓新的屏保启动请求。
 
 Windows 屏保卡片提供双向设置：通过 `SystemParametersInfoW` 的 SET 动作更新系统 timeout / active，并使用 `SPIF_UPDATEINIFILE | SPIF_SENDCHANGE` 保存和通知；屏保选择写入 `SCRNSAVE.EXE`，随后更新 active，选择无时删除路径并关闭 active。每 5 秒和窗口重新激活时回读配置。界面回读使用事件抑制标志，不回写旧状态；编辑中的时间输入和展开的下拉框不会被定时刷新覆盖。IdleGuard 使用系统 timeout 时，外部 timeout 更改会建立新计时基线。枚举 Windows / System32 `.scr`，仅以资源方式加载名称字符串 1，保留当前外部路径；策略管理的设置只读。右上角打开 `control.exe desk.cpl,,@screensaver`。原生对话框尚未应用的值不属于已保存系统状态。

@@ -197,13 +197,15 @@
                     </StackPanel>
                 </ScrollViewer>
                 <Border Grid.Row="1" Padding="32,16" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                    <Grid ColumnSpacing="24" RowSpacing="6">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Grid RowSpacing="6">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <Grid ColumnSpacing="24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <TextBlock x:Name="IdleText" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <TextBlock x:Name="RemainingText" Style="{StaticResource Hint}" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <TextBlock x:Name="RemainingText" Grid.Column="1" Style="{StaticResource Hint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </Grid>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <TextBlock Text="{Binding [CurrentTime]}" Style="{StaticResource Hint}" VerticalAlignment="Center" />
                             <TextBlock x:Name="CurrentTimeText" FontSize="16" VerticalAlignment="Center" AutomationProperties.Name="{Binding [CurrentTime]}" />
@@ -211,8 +213,15 @@
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                             <Button x:Name="StartButton" Content="{Binding [Test]}" Click="Start_Click" ToolTipService.ToolTip="{Binding [TestHelp]}" />
                         </StackPanel>
-                        <TextBlock x:Name="ControllerStatusText" Grid.Row="1" Style="{StaticResource Hint}" FontSize="12" />
-                        <TextBlock x:Name="ResultText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" MaxWidth="500" TextTrimming="CharacterEllipsis" FontSize="12" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid Grid.Row="1" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ControllerStatusText" MaxWidth="220" Style="{StaticResource Hint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="12" />
+                        <TextBlock x:Name="ResultText" Grid.Column="1" TextTrimming="CharacterEllipsis" FontSize="12" HorizontalAlignment="Stretch" TextAlignment="Right" />
+                        <TextBlock x:Name="DeferredResultText" Grid.Column="1" TextTrimming="CharacterEllipsis" FontSize="12" HorizontalAlignment="Stretch" TextAlignment="Right" Visibility="Collapsed">
+                            <Run x:Name="DisplayRequestPrefix"/><Hyperlink x:Name="DisplayRequestLink" Click="DisplayRequestLink_Click"><Run x:Name="DisplayRequestLinkLabel"/></Hyperlink><Run x:Name="DisplayRequestSuffix"/>
+                        </TextBlock>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>

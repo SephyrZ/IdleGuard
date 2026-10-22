@@ -59,6 +59,8 @@ Startup uses the current user's Run registry entry and launches the current exec
 
 **Run as administrator by default** saves a preference to request Windows elevation on future launches, including startup. Windows may ask for approval; this does not create a silent elevated startup task. Use **Restart as administrator now** to apply it to the current session. Cancelling keeps the current instance running. Turning the preference off takes effect on the next normal launch; a Windows compatibility setting can still force elevation. An elevated restart waits for the original process to exit before claiming the singleton. Running with matching privileges resolved the user's BH3 fullscreen input issue.
 
+Before each automatic screensaver start, IdleGuard runs a hidden, asynchronous `powercfg /requests` check. Any active `DISPLAY` request from an app, service or driver restarts IdleGuard's full idle timer instead of starting the saver. It checks again only at the next idle deadline; there is no periodic powercfg polling. `SYSTEM` and `EXECUTION` requests alone do not defer startup. Manual testing bypasses this check. The query requires administrator permissions; a failed, unrecognized or timed-out query pauses automatic triggering with an error instead of assuming no requests. Use Settings to restart as administrator, then retry monitoring. This detects display power requests, not every possible way an app can inhibit screensavers.
+
 ## Planned features
 
 - Broaden controller hardware coverage and vendor-specific HID support.

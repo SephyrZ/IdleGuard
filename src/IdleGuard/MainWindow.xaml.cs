@@ -11,12 +11,18 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Documents;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace IdleGuard;
 
 public sealed partial class MainWindow : Window
 {
     private readonly ScreenSaverService _screenSaver = new();
+    private readonly PowerRequestService _powerRequests = new();
+    private string _displayRequestSources = "";
+    private readonly Flyout _copyPathFeedback = new() { Placement = FlyoutPlacementMode.Top };
+    private readonly DispatcherTimer _copyPathFeedbackTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly StartupService _startup = new();
     private TrayIcon? _tray;
     private readonly AppIcons _icons;
@@ -53,6 +59,7 @@ public sealed partial class MainWindow : Window
         catch (Exception ex) { _preferencesErrorKey = "LoadFailed"; _preferencesErrorDetail = ex.Message; }
         _strings.SetLanguage(_settings.Language);
         InitializeComponent();
+        _copyPathFeedbackTimer.Tick += (_, _) => { _copyPathFeedbackTimer.Stop(); _copyPathFeedback.Hide(); };
         _icons = new AppIcons(WinRT.Interop.WindowNative.GetWindowHandle(this));
         TitleIcon.Source = LoadAppIcon("small");
         AboutAppIcon.Source = LoadAppIcon("full");
@@ -63,6 +70,7 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
         RootLayout.Loaded += (_, _) => UpdateTitleBar();
         RootLayout.ActualThemeChanged += (_, _) => UpdateTitleBar();
+        AppWindow.Changed += (_, _) => UpdateWindowFrame();
         RootLayout.SizeChanged += (_, _) => { UpdateTitleBarInsets(); UpdateMinimumWindowSize(); UpdateResponsiveNavigation(); };
         Activated += (_, args) =>
         {
@@ -91,7 +99,7 @@ public sealed partial class MainWindow : Window
         {
             if (!_exiting && CanHideToTray) { args.Cancel = true; AppWindow.Hide(); }
         };
-        Closed += (_, _) => { _timer.Stop(); _controllerTimer.Stop(); _input.Catalog.RulesChanged -= DeviceRulesChanged; _lifetime.Cancel(); _tray?.Dispose(); _icons.Dispose(); };
+        Closed += (_, _) => { _timer.Stop(); _controllerTimer.Stop(); _copyPathFeedbackTimer.Stop(); _copyPathFeedback.Hide(); _input.Catalog.RulesChanged -= DeviceRulesChanged; _lifetime.Cancel(); _tray?.Dispose(); _icons.Dispose(); };
         _ready = true;
         RefreshStartup();
         try
@@ -192,7 +200,22 @@ public sealed partial class MainWindow : Window
         byte channel = dark ? (byte)255 : (byte)0;
         bar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(24, channel, channel, channel);
         bar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(16, channel, channel, channel);
+        UpdateWindowFrame();
         UpdateTitleBarInsets();
+    }
+
+    private void UpdateWindowFrame()
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
+        var window = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        uint dark = RootLayout.ActualTheme == ElementTheme.Dark ? 1u : 0u;
+        // Keep the native frame consistent with XAML. Suppress the DWM border
+        // only while maximized to avoid a bright strip on mixed-DPI displays.
+        var border = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized }
+            ? NativeMethods.DwmColorNone : NativeMethods.DwmColorDefault;
+        // Cosmetic fallback: unsupported/failed attributes leave Windows defaults intact.
+        _ = NativeMethods.DwmSetWindowAttribute(window, NativeMethods.DwmUseImmersiveDarkMode, in dark, sizeof(uint));
+        _ = NativeMethods.DwmSetWindowAttribute(window, NativeMethods.DwmBorderColor, in border, sizeof(uint));
     }
 
     private void UpdateTitleBarInsets()
@@ -415,7 +438,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private string TranslateError(string key, string detail) => key is "ReadFailed" or "RequestFailed" or "InputError"
+    private string TranslateError(string key, string detail) => key is "ReadFailed" or "RequestFailed" or "InputError" or "PowerRequestCheckFailed"
         ? _strings.Format(key, detail) : _strings[key];
 
     private static bool SameSaver(string? first, string? second) => first is null || second is null
@@ -555,6 +578,12 @@ public sealed partial class MainWindow : Window
             ? _strings.Format("ObservedAt", _observedSaver, observedAt.LocalDateTime)
             : _resultKey == "NoOperation" ? _strings["SaverNotRunning"] : TranslateError(_resultKey, _resultDetail);
         ToolTipService.SetToolTip(ResultText, ResultText.Text);
+        var showRequestLink = !_running && _resultKey == "DisplayRequestDeferred" && _displayRequestSources.Length > 0;
+        ResultText.Visibility = showRequestLink ? Visibility.Collapsed : Visibility.Visible;
+        DeferredResultText.Visibility = showRequestLink ? Visibility.Visible : Visibility.Collapsed;
+        DisplayRequestPrefix.Text = _strings["DisplayRequestPrefix"];
+        DisplayRequestLinkLabel.Text = _strings["DisplayRequestSourceLink"];
+        DisplayRequestSuffix.Text = _strings["DisplayRequestSuffix"];
         PreferencesErrorText.Text = _preferencesErrorKey is null ? "" : _strings.Format(_preferencesErrorKey, _preferencesErrorDetail ?? "");
         AdministratorStatusText.Text = _strings[_isAdministrator ? "AdministratorActive" : "AdministratorInactive"];
         AdministratorRestartButton.Visibility = !_isAdministrator && _settings.RunAsAdministrator ? Visibility.Visible : Visibility.Collapsed;
@@ -563,6 +592,24 @@ public sealed partial class MainWindow : Window
     }
 
     private async void Start_Click(object sender, RoutedEventArgs args) => await RequestScreenSaverAsync();
+
+    private void DisplayRequestLink_Click(Hyperlink sender, HyperlinkClickEventArgs args)
+    {
+        if (string.IsNullOrEmpty(_displayRequestSources)) return;
+        var message = _strings["RequestPathCopied"];
+        try
+        {
+            var data = new DataPackage();
+            data.SetText(_displayRequestSources);
+            Clipboard.SetContent(data);
+            Clipboard.Flush();
+        }
+        catch { message = _strings["RequestPathCopyFailed"]; }
+        _copyPathFeedbackTimer.Stop();
+        _copyPathFeedback.Content = new TextBlock { Text = message };
+        _copyPathFeedback.ShowAt(DeferredResultText);
+        _copyPathFeedbackTimer.Start();
+    }
 
     private void RecordObserved(DateTimeOffset time)
     {
@@ -577,12 +624,41 @@ public sealed partial class MainWindow : Window
         _running = running;
     }
 
-    private async Task RequestScreenSaverAsync()
+    private async Task RequestScreenSaverAsync(bool automatic = false)
     {
         if (_requestInFlight || _pendingSystemWrites > 0) return;
         _requestInFlight = true;
+        var checkingPowerRequests = false;
         try
         {
+            if (automatic)
+            {
+                var cycle = _input.Tracker.Cycle;
+                checkingPowerRequests = true;
+                var displayRequests = await Task.Run(() => _powerRequests.GetDisplayRequestsAsync(_lifetime.Token), _lifetime.Token);
+                checkingPowerRequests = false;
+                if (_lifetime.IsCancellationRequested) return;
+                // Input, pause/resume, timeout edits or writes during the asynchronous
+                // query invalidate this trigger. Never launch using the old idle snapshot.
+                if (!_controller.Enabled || _controller.State != IdleControllerState.Triggering) return;
+                if (_input.Tracker.Cycle != cycle || _input.Tracker.IsPaused || _pendingSystemWrites > 0)
+                {
+                    _controller.Enable(_input.Tracker.Cycle);
+                    return;
+                }
+                if (displayRequests.Count > 0)
+                {
+                    _displayRequestSources = string.Join(Environment.NewLine, displayRequests);
+                    ToolTipService.SetToolTip(DisplayRequestLink, new ToolTip
+                    {
+                        Content = new TextBlock { Text = _displayRequestSources, TextWrapping = TextWrapping.Wrap, MaxWidth = 560 }
+                    });
+                    _input.Tracker.Restart();
+                    _controller.Enable(_input.Tracker.Cycle);
+                    _resultKey = "DisplayRequestDeferred";
+                    return;
+                }
+            }
             if (_screenSaver.IsRunning()) { ObserveRunning(true); _controller.CompleteRequest(true, ""); return; }
             var requestedAt = DateTimeOffset.Now;
             _screenSaver.RequestStart(WinRT.Interop.WindowNative.GetWindowHandle(this));
@@ -609,7 +685,8 @@ public sealed partial class MainWindow : Window
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex)
         {
-            _resultKey = ex is InvalidOperationException ? "NoSaverError" : "RequestFailed";
+            _resultKey = checkingPowerRequests ? "PowerRequestCheckFailed"
+                : ex is InvalidOperationException ? "NoSaverError" : "RequestFailed";
             _resultDetail = _controllerDetail = ex.Message;
             if (_controller.Enabled) _controller.Fail(_resultKey);
         }
@@ -636,7 +713,7 @@ public sealed partial class MainWindow : Window
         if (_controller.Enabled && _input.Error is not null) { _controllerDetail = _input.Error; _controller.Fail("InputError"); }
         if (!_requestInFlight && _pendingSystemWrites == 0 && EffectiveTimeout is { } timeout && _controller.Evaluate(_input.Tracker.Idle,
                 TimeSpan.FromSeconds(timeout), _input.Tracker.Cycle, _input.Tracker.IsPaused, _running))
-            _ = RequestScreenSaverAsync();
+            _ = RequestScreenSaverAsync(automatic: true);
         UpdateDisplay();
     }
 }

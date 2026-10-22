@@ -13,6 +13,10 @@ Requires Windows 10 version 2004 or later (x64). The first launch extracts bundl
 
 Set a timeout on the Screensaver page and start monitoring. The footer shows idle time, current time, and the last observed screensaver name and timestamp.
 
+Automatic startup checks `powercfg /requests` once at the idle deadline. An active `DISPLAY` request restarts the full IdleGuard timer; there is no periodic powercfg polling. Run IdleGuard as administrator for this query. Query errors pause automatic triggering until you retry monitoring. Manual screensaver testing bypasses the check. Other power request types alone do not defer startup, and this check cannot detect every screensaver-blocking technique.
+
+Hover over the app or driver link in the deferral message to see sources from the last check. Click to copy them and briefly show a confirmation. Multiple sources are listed on separate lines; driver names are preserved when no path is supplied.
+
 The Windows screensaver card edits the installed saver and system timeout in seconds. Changes are saved in order in the background while the UI stays responsive. The row's icon opens Windows settings. Applied external changes are refreshed every five seconds and when returning to IdleGuard, after pending writes finish. Selecting None disables the Windows saver. These settings are separate from IdleGuard's own timer. The minimum window size is 660 x 660 logical pixels.
 
 Keyboards, mice and supported controllers are included automatically. Choose which inputs reset idle on the device page. Use **Add device** beside **Refresh devices** to search other Windows input interfaces by name, type or path. Unsupported interfaces cannot be added. Device choices are saved across restarts. Windows interface paths are hidden until the switch above the list is enabled.

@@ -123,7 +123,7 @@
   "AddDevice": "Add device",
   "RestartAsAdministrator": "Restart as administrator now",
   "AdministratorActive": "Currently running as administrator",
-  "AdministratorHelp": "Standard permissions may not capture input in apps running as administrator.",
+  "AdministratorHelp": "Administrator permissions are required to check display power requests before automatic screensaver start. Standard permissions may also miss input in elevated apps.",
   "Cancel": "Cancel",
   "NoMatchingDevices": "No other matching input devices found.",
   "SearchDevices": "Search by name, type or device path",
@@ -134,5 +134,12 @@
   "ControllerInput": "Controller input",
   "AdministratorError": "Could not restart as administrator: {0}",
   "UnsupportedInput": "No supported input controls",
-  "AdministratorInactive": "Currently running with standard permissions"
+  "AdministratorInactive": "Currently running with standard permissions",
+  "PowerRequestCheckFailed": "Could not check display power requests. Run IdleGuard as administrator and retry monitoring. Details: {0}",
+  "DisplayRequestDeferred": "An app or driver is keeping the display on. IdleGuard's idle timer was restarted.",
+  "DisplayRequestPrefix": "An ",
+  "DisplayRequestSourceLink": "app or driver",
+  "DisplayRequestSuffix": " is keeping the display on. IdleGuard's idle timer was restarted.",
+  "RequestPathCopied": "Path copied",
+  "RequestPathCopyFailed": "Could not copy path. Please try again."
 }

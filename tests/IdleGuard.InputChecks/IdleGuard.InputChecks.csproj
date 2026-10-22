@@ -19,6 +19,7 @@
     <Compile Include="../../src/IdleGuard/Native/InputMessageWindow.cs" Link="InputMessageWindow.cs" />
     <Compile Include="../../src/IdleGuard/Services/LocalizationService.cs" Link="LocalizationService.cs" />
     <Compile Include="../../src/IdleGuard/Services/IdleController.cs" Link="IdleController.cs" />
+    <Compile Include="../../src/IdleGuard/Services/Windows/PowerRequestService.cs" Link="PowerRequestService.cs" />
     <Compile Include="../../src/IdleGuard/Services/SettingsStore.cs" Link="SettingsStore.cs" />
     <Compile Include="../../src/IdleGuard/Models/AppSettings.cs" Link="AppSettings.cs" />
     <EmbeddedResource Include="../../src/IdleGuard/Strings/en-US.json" LogicalName="IdleGuard.Strings.en-US.json" />
