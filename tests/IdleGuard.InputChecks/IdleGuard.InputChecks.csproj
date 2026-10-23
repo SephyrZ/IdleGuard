@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/IdleGuard/Models/InputActivity.cs" Link="InputActivity.cs" />
@@ -21,6 +22,7 @@
     <Compile Include="../../src/IdleGuard/Services/IdleController.cs" Link="IdleController.cs" />
     <Compile Include="../../src/IdleGuard/Services/Windows/PowerRequestService.cs" Link="PowerRequestService.cs" />
     <Compile Include="../../src/IdleGuard/Services/SettingsStore.cs" Link="SettingsStore.cs" />
+    <Compile Include="../../src/IdleGuard/Services/AppJsonContext.cs" Link="AppJsonContext.cs" />
     <Compile Include="../../src/IdleGuard/Models/AppSettings.cs" Link="AppSettings.cs" />
     <EmbeddedResource Include="../../src/IdleGuard/Strings/en-US.json" LogicalName="IdleGuard.Strings.en-US.json" />
     <EmbeddedResource Include="../../src/IdleGuard/Strings/zh-CN.json" LogicalName="IdleGuard.Strings.zh-CN.json" />

@@ -123,7 +123,7 @@ Check(!controller.Evaluate(threshold, TimeSpan.Zero, 4, false, false) && control
 var languages = new[] { "en-US", "zh-CN" }.Select(language =>
 {
     using var stream = typeof(LocalizationService).Assembly.GetManifestResourceStream($"IdleGuard.Strings.{language}.json")!;
-    return JsonSerializer.Deserialize<Dictionary<string, string>>(stream)!;
+    return JsonSerializer.Deserialize(stream, AppJsonContext.Default.LanguageDictionary)!;
 }).ToArray();
 Check(languages[0].Keys.ToHashSet().SetEquals(languages[1].Keys), "English and Chinese resources have matching keys");
 var strings = LocalizationService.Current;
@@ -140,6 +140,31 @@ try
 {
     var store = new SettingsStore(preferencesFile);
     Check(store.Load() == new AppSettings(), "Missing settings use defaults");
+    Check(store.Load().RunAsAdministrator, "First launch requests administrator permissions by default");
+    File.WriteAllText(preferencesFile, """{"RunAsAdministrator":false}""");
+    Check(!store.Load().RunAsAdministrator, "An existing explicit administrator opt-out is respected");
+    store.Save(new AppSettings(RunAsAdministrator: false));
+    Check(!store.Load().RunAsAdministrator, "Turning administrator startup off remains off after reload");
+    File.WriteAllText(preferencesFile, """
+        {"Language":"en-US","CustomTimeoutSeconds":37,"RunAsAdministrator":true,
+         "DeviceRules":{"HID\\VID_1234&PID_5678":false,"设备":true},"FutureSetting":123}
+        """);
+    var legacy = store.Load();
+    Check(legacy.Language == "en-US" && legacy.CustomTimeoutSeconds == 37 && legacy.RunAsAdministrator
+        && !legacy.UseSystemTimeout && !legacy.MonitoringEnabled
+        && legacy.DeviceRules is { Count: 2 } && !legacy.DeviceRules[@"HID\VID_1234&PID_5678"] && legacy.DeviceRules["设备"],
+        "Generated JSON reader accepts existing preferences, missing optional fields, Unicode device rules and unknown fields");
+    store.Save(legacy);
+    var legacyReloaded = store.Load();
+    Check(legacyReloaded.DeviceRules!.OrderBy(p => p.Key).SequenceEqual(legacy.DeviceRules!.OrderBy(p => p.Key))
+        && legacyReloaded.RunAsAdministrator, "Generated JSON writer preserves device rules and administrator preference");
+    File.WriteAllText(preferencesFile, "{}");
+    Check(store.Load() == new AppSettings(), "Empty legacy preference object retains constructor defaults");
+    Check(store.Load().RunAsAdministrator, "Preferences without an administrator field use the new first-launch default");
+    File.WriteAllText(preferencesFile, "null");
+    var nullRejected = false;
+    try { store.Load(); } catch (InvalidDataException) { nullRejected = true; }
+    Check(nullRejected, "Null preferences are rejected rather than silently overwritten");
     var saved = new AppSettings("en-US", true, 42);
     store.Save(saved);
     Check(store.Load() == saved, "Language, timeout mode, and custom duration survive reload");

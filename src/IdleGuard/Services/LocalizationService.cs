@@ -4,7 +4,10 @@ using System.Text.Json;
 
 namespace IdleGuard.Services;
 
-public sealed class LocalizationService : INotifyPropertyChanged
+#if WINDOWS
+[WinRT.GeneratedBindableCustomProperty]
+#endif
+public sealed partial class LocalizationService : INotifyPropertyChanged
 {
     public static LocalizationService Current { get; } = new();
     private readonly Dictionary<string, Dictionary<string, string>> _languages = new();
@@ -18,7 +21,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         {
             using var stream = typeof(LocalizationService).Assembly.GetManifestResourceStream($"IdleGuard.Strings.{language}.json")
                 ?? throw new InvalidOperationException($"Missing language resource: {language}");
-            _languages[language] = JsonSerializer.Deserialize<Dictionary<string, string>>(stream)!;
+            _languages[language] = JsonSerializer.Deserialize(stream, AppJsonContext.Default.LanguageDictionary)!;
         }
     }
 

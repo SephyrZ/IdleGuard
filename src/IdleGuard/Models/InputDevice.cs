@@ -6,7 +6,7 @@ namespace IdleGuard.Models;
 
 public enum InputDeviceKind { Mouse, Keyboard, Controller, Hid }
 
-public sealed class InputDevice : INotifyPropertyChanged
+public sealed partial class InputDevice : INotifyPropertyChanged
 {
     private bool _enabled = true;
     private bool _connected;

@@ -23,6 +23,8 @@ Keyboards, mice and supported controllers are included automatically. Choose whi
 
 Closing the window keeps IdleGuard running in the notification area. Left-click its tray icon to reopen; right-click to toggle startup, toggle monitoring, or exit. Settings offers language switching, sign-in startup and an administrator launch preference. Enabling the administrator preference may prompt for Windows approval at launch, including sign-in startup. Use the restart button to apply it now. Turning it off takes effect on the next normal launch; Windows compatibility settings take precedence.
 
+On first launch, IdleGuard requests administrator permissions automatically. You can turn this off in Settings for subsequent launches. An existing saved opt-out remains respected; cancelling the Windows approval prompt opens the app with standard permissions and an error message instead.
+
 Preferences are stored in `%LOCALAPPDATA%\IdleGuard\settings.json`, outside the program directory. If you move the executable, turn startup off and back on to register the new path.
 
 This is a prototype. Controller input uses XInput or standard HID buttons and axes, with analog filtering. XInput slots are connection slots, not stable controller identities. Vendor-specific HID inputs may be unsupported. Actual controller hardware coverage and sign-in elevation still need validation.

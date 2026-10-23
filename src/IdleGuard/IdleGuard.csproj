@@ -14,6 +14,8 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CsWinRTAotWarningLevel>1</CsWinRTAotWarningLevel>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Strings/en-US.json" LogicalName="IdleGuard.Strings.en-US.json" />
@@ -22,7 +24,10 @@
     <EmbeddedResource Include="Assets/AppIcon.small.png" LogicalName="IdleGuard.Assets.AppIcon.small.png" />
     <EmbeddedResource Include="Assets/AppIcon.full.png" LogicalName="IdleGuard.Assets.AppIcon.full.png" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
   </ItemGroup>
+  <Target Name="WritePublishDependencyAudit" AfterTargets="PrepareForBundle" Condition="'$(PublishAuditPath)' != ''">
+    <Error Condition="'@(FilesToBundle)' == ''" Text="The single-file dependency inventory is empty." />
+    <WriteLinesToFile File="$(PublishAuditPath)" Lines="@(FilesToBundle->'%(FullPath)|%(RelativePath)')" Overwrite="true" Encoding="UTF-8" />
+  </Target>
 </Project>

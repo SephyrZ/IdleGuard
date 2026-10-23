@@ -9,7 +9,10 @@ using IdleGuard.Native;
 namespace IdleGuard.Services.Windows;
 
 public sealed record ScreenSaverConfiguration(string? Path, int TimeoutSeconds, bool AutomaticEnabled, bool IsManaged = false);
-public sealed record ScreenSaverChoice(string? Path, string Name);
+#if WINDOWS
+[WinRT.GeneratedBindableCustomProperty]
+#endif
+public sealed partial record ScreenSaverChoice(string? Path, string Name);
 
 [SupportedOSPlatform("windows")]
 public sealed class ScreenSaverService
