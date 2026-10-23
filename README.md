@@ -2,72 +2,33 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-A Windows utility in development that tracks its own idle time using selected input devices and starts the configured Windows screensaver when the timeout is reached. The planned desktop app uses C# and WinUI 3.
+A C# / WinUI 3 utility that starts the Windows screensaver after selected input devices have been idle for a chosen duration.
 
-## Current status
+## Use
 
-The project is at the prototype stage. A complete desktop app is not yet available.
+Requires **Windows 10 2004 or later, x64**. Run `Release/IdleGuard.exe`; .NET and WinUI runtimes are included.
 
-It includes a WinUI 3 app with sidebar navigation, keyboard/mouse/controller selection, searchable manual HID addition, independent idle time, manual testing, automatic screensaver start, a system tray icon, and sign-in startup. English and Simplified Chinese can be switched live in Settings. [RawIdleTest.ps1](prototypes/RawIdleTest.ps1) remains available as a separate diagnostic script.
+1. Choose a timeout on the screensaver page and enable monitoring.
+2. Select which keyboards, mice and supported controllers reset the timer under **Activity & devices**.
+3. Close the window to keep running in the tray. Use the tray menu to exit.
 
-## Run the validation window
+First launch requests administrator permissions. Disable this in Settings if preferred; an existing saved opt-out is preserved. Settings also includes English / Chinese and sign-in startup options.
 
-For normal use, run `Release/IdleGuard.exe`. This is the compressed single-file release, with its own .NET and Windows App SDK runtimes. Only the executable and a `docs/` folder are exposed. It extracts runtime dependencies into the .NET cache on first launch, so compressed download size is smaller than total runtime disk usage.
+Automatic triggering defers while an app or driver requests the display stay on. This check requires administrator permissions; errors pause automatic triggering. Windows' own screensaver timer remains independent.
 
-Regenerate this local release with `./scripts/publish.ps1` in PowerShell. Exit the running release from its tray menu first. The script fully rebuilds with the single-file release profile before packaging, so incremental development builds cannot leave out required WinUI initialization resources. It packages files locally; it does not upload or publish a GitHub release. `bin/` and `obj/` remain development build output, not the user-facing distribution.
+Preferences: `%LOCALAPPDATA%\IdleGuard\settings.json`. After moving the executable, toggle sign-in startup off and on to update its path.
 
-Requirements: Windows 10 version 2004 or later (x64), .NET 10 SDK, and NuGet access for the first build. The Windows App SDK runtime is included in the build output; no MSIX installation is needed.
+## Build
+
+Requires the **.NET 10 SDK** and NuGet access. Exit the running release before rebuilding.
 
 ```powershell
+# Development build
 dotnet build src/IdleGuard/IdleGuard.csproj -c Debug -p:Platform=x64
-& ./src/IdleGuard/bin/x64/Debug/net10.0-windows10.0.19041.0/win-x64/IdleGuard.exe
+# Local release in Release/
+./scripts/publish.ps1
 ```
 
-The app opens in Chinese initially. Use **Settings → Display language** to switch to English immediately. Language, timeout and monitoring preferences are saved in `%LOCALAPPDATA%/IdleGuard/settings.json`. Monitoring is initially off; later launches restore the saved switch.
+Successful publishing removes temporary build files and keeps reports in `artifacts/latest-publish`.
 
-## Navigation and automatic start
-
-- **Screensaver**: choose a custom duration in whole seconds (1–86,400), or read the Windows screensaver timeout. Click **Start monitoring** to begin a fresh idle cycle; **Pause monitoring** stops automatic requests. The page shows Windows screensaver information; idle time, remaining time and status stay in the fixed footer.
-- **Activity & devices**: view live input, accepted/ignored events, and select input interfaces. **Add device**, beside **Refresh devices**, searches other Windows input interfaces by name, type or path. Unsupported interfaces are shown but cannot be added.
-- **About** and **Settings** stay at the bottom of the sidebar. Settings includes an immediate English / Simplified Chinese language switch, **Launch at startup**, and **Run as administrator by default**.
-- The permanent **Test screensaver** button stays at the bottom right beside a clock showing seconds. Hover for testing guidance. Successful observation records the saver name and local date/time to the second. This is the first observed running time, not a guaranteed process creation timestamp. Windows configuration refreshes automatically.
-
-Automatic start requests the configured saver once when IdleGuard's timer reaches the effective timeout. Accepted input opens a new cycle. Dismissal by an excluded device does not immediately relaunch the saver. Existing running savers are not launched again. An unconfirmed or failed start pauses automatic triggering until **Retry monitoring** is clicked. Changing the active timeout starts a fresh monitoring baseline. Reading the system timeout does not overwrite the saved custom duration or change Windows settings. System configuration is refreshed at least every five seconds while the app is running.
-
-A request being sent does not prove the saver started: the app observes running state for up to ten seconds. If no saver is configured, the manual test button is disabled and automatic start shows an error.
-
-The Windows screensaver card edits the installed saver and system timeout in seconds. Selecting **(None)** disables the Windows saver. Changes are queued immediately and written in order on a background thread, so Windows notifications cannot block focus changes or the UI. The row's icon opens the native settings dialog. Applied external changes are read every five seconds and when the window regains focus, after pending writes finish. Installed choices are read from Windows and System32 `.scr` resources, including the currently configured third-party saver; no saver code is executed while listing them. Policy-managed settings are read-only. The IdleGuard timeout controls above this card remain independent. The minimum window size is 660 x 660 logical pixels; the sidebar collapses on narrower windows.
-
-## Device selection and idle time
-
-- Keyboard, mouse and supported controller interfaces are enabled by default. Other HID interfaces require manual addition. Uncheck an interface to exclude its input from IdleGuard's timer; normal Windows input continues to work.
-- The fixed footer displays independent idle time and monitoring status on every page, with a clock and manual screensaver control on the right. The activity page shows the latest input, its device and acceptance result, and accepted/ignored packet counts. These are input events, not a count of user gestures.
-- Each device occupies one row with its connection status beside its name. **Show device interface paths** reveals its Windows interface path on a second row; paths are hidden by default.
-- Relative mouse movement, changed absolute positions, button changes, nonzero wheel movement, and keyboard press/repeat/release events count. Empty mouse packets and unattributable sources do not reset idle.
-- Raw Input runs through a separate hidden window even while the main window is minimized. Lock/suspend pauses the timer; unlock/resume starts a fresh baseline.
-- **Refresh devices** reloads the list without resetting idle. Unplugged interfaces remain marked offline during the run. Selection is saved by device path across restarts; a changed USB port or connection mode may produce a different path. Saved rules remain even when a device is absent. A physical device may expose several interfaces.
-- Xbox-compatible controllers use XInput; other supported controllers use standard HID controls. Buttons, hat switches and significant axis movement count; held states and analog drift do not repeat indefinitely. Connected XInput slots are checked about every 32 ms, disconnected slots every two seconds. Slot numbers are connection slots, not stable physical-controller identities, so a saved slot rule may apply to a different controller later. XInput HID duplicates are excluded.
-- **Test screensaver** remains a permanent manual test button. Windows' own screensaver timer still works independently.
-
-See [input validation](docs/input-validation.md) for checks and remaining hardware scenarios.
-
-## Background and startup
-
-Closing the window hides it to the notification area and keeps monitoring alive. Left-click the IdleGuard tray icon to reopen the window. Right-click for **Launch at startup**, **Monitor screensaver**, and **Exit**. The switches share state with Settings and the main page. Launching the app again restores the existing window instead of creating another instance. **Exit** stops monitoring and removes the tray icon.
-
-Startup uses the current user's Run registry entry and launches the current executable with `--background` at Windows sign-in. Moving the executable requires turning startup off and on from the new location. Startup is off until enabled. Windows can delay startup or disable it in Task Manager; sign-in behavior has not been tested by restarting Windows in this session.
-
-**Run as administrator by default** saves a preference to request Windows elevation on future launches, including startup. Windows may ask for approval; this does not create a silent elevated startup task. Use **Restart as administrator now** to apply it to the current session. Cancelling keeps the current instance running. Turning the preference off takes effect on the next normal launch; a Windows compatibility setting can still force elevation. An elevated restart waits for the original process to exit before claiming the singleton. Running with matching privileges resolved the user's BH3 fullscreen input issue.
-
-Before each automatic screensaver start, IdleGuard runs a hidden, asynchronous `powercfg /requests` check. Any active `DISPLAY` request from an app, service or driver restarts IdleGuard's full idle timer instead of starting the saver. It checks again only at the next idle deadline; there is no periodic powercfg polling. `SYSTEM` and `EXECUTION` requests alone do not defer startup. Manual testing bypasses this check. The query requires administrator permissions; a failed, unrecognized or timed-out query pauses automatic triggering with an error instead of assuming no requests. Use Settings to restart as administrator, then retry monitoring. This detects display power requests, not every possible way an app can inhibit screensavers.
-
-## Planned features
-
-- Broaden controller hardware coverage and vendor-specific HID support.
-- Improve physical-controller identity mapping across XInput reconnections.
-
-Device selection controls IdleGuard's timer. Screensaver dismissal and sign-in requirements remain governed by Windows and the screensaver. Windows' own screensaver timer operates independently and may trigger earlier; IdleGuard will not change it by default.
-
-Features and usage instructions will be updated as development progresses.
-
-See [architecture and implementation plan](docs/architecture.md) for planned files, timer behavior, and screensaver integration.
+This is a prototype; controller hardware coverage and sign-in elevation still need validation. See [validation](docs/input-validation.md), [architecture](docs/architecture.md), and [publishing](docs/publish-optimization.md).
