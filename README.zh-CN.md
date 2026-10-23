@@ -1,8 +1,22 @@
-# IdleGuard
+<div align="center">
+  <img src="src/IdleGuard/Assets/AppIcon.full.png" width="88" alt="IdleGuard 图标">
+  <h1>IdleGuard</h1>
+  <p>一个按选定设备的活动来计时、自动启动屏保的 Windows 小工具。</p>
+  <p>
+    <img src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat" alt="Windows 10 / 11">
+    <img src="https://img.shields.io/badge/.NET-10-512BD4?style=flat" alt=".NET 10">
+    <img src="https://img.shields.io/badge/UI-WinUI%203-5C2D91?style=flat" alt="WinUI 3">
+  </p>
+  <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
+</div>
 
-[English](README.md) | **简体中文**
+自己选择哪些键盘、鼠标和支持的手柄算作活动。IdleGuard 独立计时，选中的设备空闲达到设定时间后，就启动 Windows 系统屏保。
 
-使用 C# + WinUI 3 开发的 Windows 工具：只根据选中设备的活动计时，空闲达到设定时间后启动系统屏保。
+- 自定等待时间，选择能重置计时的设备。
+- 关闭窗口后在托盘运行，可选登录自启。
+- 在设置中切换中文和英文。
+
+[使用](#使用) · [构建](#构建) · [架构](docs/architecture.md) · [验证记录](docs/input-validation.md)
 
 ## 使用
 

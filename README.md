@@ -1,8 +1,22 @@
-# IdleGuard
+<div align="center">
+  <img src="src/IdleGuard/Assets/AppIcon.full.png" width="88" alt="IdleGuard icon">
+  <h1>IdleGuard</h1>
+  <p>A small Windows utility for device-aware screensaver timing.</p>
+  <p>
+    <img src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat" alt="Windows 10 / 11">
+    <img src="https://img.shields.io/badge/.NET-10-512BD4?style=flat" alt=".NET 10">
+    <img src="https://img.shields.io/badge/UI-WinUI%203-5C2D91?style=flat" alt="WinUI 3">
+  </p>
+  <p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+</div>
 
-**English** | [简体中文](README.zh-CN.md)
+Choose which keyboards, mice and supported controllers count as activity. IdleGuard keeps its own idle timer and starts the Windows screensaver when those devices have been quiet long enough.
 
-A C# / WinUI 3 utility that starts the Windows screensaver after selected input devices have been idle for a chosen duration.
+- Set a timeout and pick the devices that reset it.
+- Keep it running in the tray, with optional sign-in startup.
+- Switch between English and Chinese in Settings.
+
+[Use](#use) · [Build](#build) · [Architecture](docs/architecture.md) · [Validation notes](docs/input-validation.md)
 
 ## Use
 
